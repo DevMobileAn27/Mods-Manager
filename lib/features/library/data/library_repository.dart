@@ -26,24 +26,27 @@ class LibraryRepository {
       await _migrateSkinPrefixFolders(root);
     }
 
-    // Mỗi skin có một folder ở cả hai tab, kể cả khi chỉ một bên có file.
-    final skinNames = <String, String>{};
+    // Chỉ đồng bộ các skin thuộc catalog sang cả hai root. Các folder lạ
+    // vẫn được hiển thị ở root đang chứa dữ liệu nhưng không được tự tạo lại
+    // ở root còn lại sau khi người dùng đã xoá chúng.
+    final catalogSkinNames = <String, String>{};
     for (final root in roots) {
       await for (final entity in root.list(followLinks: false)) {
         if (entity is! Directory) continue;
         final name = p.basename(entity.path);
-        if (_isLegacyCharacterName(name)) continue;
-        skinNames.putIfAbsent(name.toLowerCase(), () => name);
+        if (_isCatalogSkinName(name)) {
+          catalogSkinNames.putIfAbsent(name.toLowerCase(), () => name);
+        }
       }
     }
     for (final character in characterCatalog) {
       final name = '$character (default)';
-      skinNames.putIfAbsent(name.toLowerCase(), () => name);
+      catalogSkinNames.putIfAbsent(name.toLowerCase(), () => name);
     }
     for (final entry in skinCatalog.entries) {
       for (final skin in entry.value) {
         final name = '${entry.key} - $skin';
-        skinNames.putIfAbsent(name.toLowerCase(), () => name);
+        catalogSkinNames.putIfAbsent(name.toLowerCase(), () => name);
       }
     }
     for (final root in roots) {
@@ -53,7 +56,7 @@ class LibraryRepository {
           existing.add(p.basename(entity.path).toLowerCase());
         }
       }
-      for (final entry in skinNames.entries) {
+      for (final entry in catalogSkinNames.entries) {
         if (!existing.contains(entry.key)) {
           await Directory(p.join(root.path, entry.value)).create();
         }
@@ -77,7 +80,7 @@ class LibraryRepository {
         for (final entity in entries) {
           if (entity is! Directory) continue;
           final name = p.basename(entity.path);
-          if (_isLegacyCharacterName(name)) continue;
+          if (!await _shouldIncludeSkinFolder(entity)) continue;
           names.putIfAbsent(name.toLowerCase(), () => name);
         }
       } catch (_) {
@@ -249,6 +252,48 @@ class LibraryRepository {
   bool _isLegacyCharacterName(String name) => characterCatalog.any(
     (character) => character.toLowerCase() == name.toLowerCase(),
   );
+
+  bool _isCatalogSkinName(String name) {
+    if (_isLegacyCharacterName(name)) return false;
+    final lowerName = name.toLowerCase();
+    for (final character in characterCatalog) {
+      final lowerCharacter = character.toLowerCase();
+      if (lowerName == '$lowerCharacter (default)' ||
+          lowerName.startsWith('$lowerCharacter - ')) {
+        return true;
+      }
+    }
+    for (final entry in skinCatalog.entries) {
+      for (final skin in entry.value) {
+        if (lowerName == '${entry.key} - $skin'.toLowerCase()) return true;
+      }
+    }
+    return false;
+  }
+
+  Future<bool> _shouldIncludeSkinFolder(Directory directory) async {
+    final name = p.basename(directory.path);
+    if (_isLegacyCharacterName(name)) return false;
+
+    if (_isCatalogSkinName(name)) return true;
+
+    // Old mod folders may remain after their contents are moved into a skin.
+    // Keep them on disk, but only show unrelated folders that still hold data.
+    try {
+      await for (final child in directory.list(followLinks: false)) {
+        final childName = p.basename(child.path).toLowerCase();
+        if (!childName.startsWith('.') &&
+            childName != 'thumbs.db' &&
+            childName != 'desktop.ini') {
+          return true;
+        }
+      }
+      return false;
+    } on FileSystemException {
+      // If the folder cannot be read, keep it visible rather than hide data.
+      return true;
+    }
+  }
 
   String _withoutSkinToken(String name) {
     for (final character in characterCatalog) {
