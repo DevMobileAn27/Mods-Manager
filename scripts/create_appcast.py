@@ -33,7 +33,7 @@ def main() -> None:
         {
             "url": (
                 f"https://github.com/{args.repository}/releases/download/"
-                f"{args.tag}/XXMI-Manager-Setup.exe"
+                f"{args.tag}/Visual-Mods-Manager-Setup.exe"
             ),
             f"{{{SPARKLE}}}dsaSignature": args.signature,
             f"{{{SPARKLE}}}version": args.version,

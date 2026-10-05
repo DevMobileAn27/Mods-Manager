@@ -21,7 +21,7 @@ Khóa công khai ở `dsa_pub.pem` được nhúng vào file EXE để xác minh
    .\scripts\build_windows_release.ps1
    ```
 
-   Script tự chạy test, build Windows, đóng gói `XXMI-Manager-Setup.exe`, ký installer và tạo `dist\appcast.xml` cho tag `v1.0.1+2`.
+   Script tự chạy test, build Windows, đóng gói `Visual-Mods-Manager-Setup.exe`, ký installer và tạo `dist\appcast.xml` cho tag `v1.0.1+2`.
 
    Nếu khóa nằm ở nơi khác:
 
@@ -29,8 +29,8 @@ Khóa công khai ở `dsa_pub.pem` được nhúng vào file EXE để xác minh
    .\scripts\build_windows_release.ps1 -PrivateKeyPath C:\keys\dsa_priv.pem
    ```
 
-5. Upload `dist\XXMI-Manager-Setup.exe` và `dist\appcast.xml` vào GitHub Release có tag `v1.0.1+2`.
+5. Upload `dist\Visual-Mods-Manager-Setup.exe` và `dist\appcast.xml` vào GitHub Release có tag `v1.0.1+2`.
 
 GitHub Actions vẫn có thể build tự động bằng `.github/workflows/windows-release.yml`; workflow đọc version từ `pubspec.yaml`, ký bằng secret và tạo cùng cấu trúc installer/appcast.
 
-Người dùng cài bằng `XXMI-Manager-Setup.exe` từ Release. Một file EXE build thô không đăng ký trình gỡ cài và không bảo đảm cùng đường dẫn cài đặt, nên không dùng file đó làm bản phát hành. App kiểm tra khi mở và mỗi 24 giờ; khi có bản mới, WinSparkle hiển thị cửa sổ xác nhận tải và chạy bộ cài.
+Người dùng cài bằng `Visual-Mods-Manager-Setup.exe` từ Release. Một file EXE build thô không đăng ký trình gỡ cài và không bảo đảm cùng đường dẫn cài đặt, nên không dùng file đó làm bản phát hành. App kiểm tra khi mở và mỗi 24 giờ; khi có bản mới, WinSparkle hiển thị cửa sổ xác nhận tải và chạy bộ cài.

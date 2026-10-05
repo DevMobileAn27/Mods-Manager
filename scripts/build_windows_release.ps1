@@ -56,7 +56,7 @@ Invoke-Step $iscc @(
     (Join-Path $repoRoot 'windows\installer\XXMI-Manager.iss')
 )
 
-$installer = Join-Path $outputPath 'XXMI-Manager-Setup.exe'
+$installer = Join-Path $outputPath 'Visual-Mods-Manager-Setup.exe'
 if (-not (Test-Path $installer -PathType Leaf)) {
     throw "Inno Setup không tạo được '$installer'."
 }

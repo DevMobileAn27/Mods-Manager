@@ -70,7 +70,7 @@ jobs:
           & openssl pkey -pubin -in dsa_pub.pem -outform DER -out $repoPublic
           if ($LASTEXITCODE -ne 0) { throw 'Invalid repository public key' }
           if ((Get-FileHash $secretPublic).Hash -ne (Get-FileHash $repoPublic).Hash) { throw 'Private key secret does not match dsa_pub.pem' }
-          $installer = Join-Path $PWD 'dist\XXMI-Manager-Setup.exe'
+          $installer = Join-Path $PWD 'dist\Visual-Mods-Manager-Setup.exe'
           $signed = dart run auto_updater:sign_update $installer $keyPath | Out-String
           if ($LASTEXITCODE -ne 0 -or $signed -notmatch 'sparkle:dsaSignature="([^"]+)"') { throw 'Installer signing failed' }
           $signature = $Matches[1]
@@ -82,10 +82,10 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: XXMI-Manager-Windows
-          path: dist/XXMI-Manager-Setup.exe
+          path: dist/Visual-Mods-Manager-Setup.exe
       - name: Publish GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create $env:GITHUB_REF_NAME dist/XXMI-Manager-Setup.exe dist/appcast.xml --repo $env:GITHUB_REPOSITORY --title $env:GITHUB_REF_NAME --generate-notes --latest
+        run: gh release create $env:GITHUB_REF_NAME dist/Visual-Mods-Manager-Setup.exe dist/appcast.xml --repo $env:GITHUB_REPOSITORY --title $env:GITHUB_REF_NAME --generate-notes --latest
