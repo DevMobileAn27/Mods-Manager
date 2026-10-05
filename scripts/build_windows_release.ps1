@@ -83,3 +83,5 @@ Invoke-Step 'python' @(
 Write-Host "Đã tạo bản phát hành $version" -ForegroundColor Green
 Write-Host "Installer: $installer"
 Write-Host "Appcast:   $appcast"
+Write-Host "Mở thư mục dist..." -ForegroundColor Cyan
+Start-Process -FilePath 'explorer.exe' -ArgumentList @($outputPath)

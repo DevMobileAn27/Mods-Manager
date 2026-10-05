@@ -63,13 +63,10 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
       await repository
           .ensureCharacterFolders(state.modsPath, state.downloadPath)
           .timeout(const Duration(seconds: 8));
-      final characters = await repository.scanSkinFolders(
-        state.modsPath,
-        state.downloadPath,
-      );
       final rootPath = state.selectedTab == 0
           ? state.modsPath
           : state.downloadPath;
+      final characters = await repository.scanSkinFoldersAt(rootPath);
       final zipCounts = await repository.scanZipCounts(rootPath);
       emit(
         state.copyWith(
@@ -79,13 +76,10 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
         ),
       );
     } catch (error) {
-      final characters = await repository.scanSkinFolders(
-        state.modsPath,
-        state.downloadPath,
-      );
       final rootPath = state.selectedTab == 0
           ? state.modsPath
           : state.downloadPath;
+      final characters = await repository.scanSkinFoldersAt(rootPath);
       final zipCounts = await repository.scanZipCounts(rootPath);
       emit(
         state.copyWith(
