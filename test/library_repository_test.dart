@@ -89,10 +89,10 @@ void main() {
     ]);
     expect(await oldModsFolder.exists(), isTrue);
     expect(await oldDownloadFolder.exists(), isTrue);
-    expect(
-      await Directory(p.join(downloadPath, 'active sport skin')).exists(),
-      isFalse,
-    );
+      expect(
+        await Directory(p.join(downloadPath, 'active sport skin')).exists(),
+        isFalse,
+      );
     expect(
       await Directory(
         p.join(modsPath, 'alice__bottom_heavy_nsfw__eea05'),
@@ -116,10 +116,27 @@ void main() {
       ]);
       expect(
         await Directory(p.join(downloadPath, 'unidentified mod')).exists(),
-        isTrue,
+        isFalse,
       );
     },
   );
+
+  test('does not recreate a deleted unrelated folder on refresh', () async {
+    final oldFolder = Directory(p.join(modsPath, 'active sport skin'));
+    await oldFolder.create(recursive: true);
+    await File(p.join(oldFolder.path, 'mod.ini')).writeAsString('data');
+
+    await repository.ensureCharacterFolders(modsPath, downloadPath);
+    expect(await Directory(p.join(downloadPath, 'active sport skin')).exists(),
+        isFalse);
+
+    await oldFolder.delete(recursive: true);
+    await repository.ensureCharacterFolders(modsPath, downloadPath);
+
+    expect(await oldFolder.exists(), isFalse);
+    expect(await Directory(p.join(downloadPath, 'active sport skin')).exists(),
+        isFalse);
+  });
 
   test('installs A.zip into the skin folder that contains it', () async {
     final zipDir = Directory(p.join(downloadPath, 'A - ABC'));
