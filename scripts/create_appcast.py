@@ -23,7 +23,7 @@ def main() -> None:
 
     rss = ET.Element("rss", version="2.0")
     channel = ET.SubElement(rss, "channel")
-    ET.SubElement(channel, "title").text = "XXMI Manager updates"
+    ET.SubElement(channel, "title").text = "Visual Mods Manager updates"
     item = ET.SubElement(channel, "item")
     ET.SubElement(item, "title").text = f"Version {args.version}"
     ET.SubElement(item, "pubDate").text = format_datetime(datetime.now(timezone.utc))
@@ -33,7 +33,7 @@ def main() -> None:
         {
             "url": (
                 f"https://github.com/{args.repository}/releases/download/"
-                f"{args.tag}/XXMI-Manager-Setup.exe"
+                f"{args.tag}/Visual-Mods-Manager-Setup.exe"
             ),
             f"{{{SPARKLE}}}dsaSignature": args.signature,
             f"{{{SPARKLE}}}version": args.version,

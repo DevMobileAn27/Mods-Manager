@@ -10,11 +10,27 @@
 
 Khóa công khai ở `dsa_pub.pem` được nhúng vào file EXE để xác minh bộ cài tải xuống. Không thay khóa riêng hoặc tên repository Releases giữa các bản phát hành nếu chưa có kế hoạch chuyển cho các bản đang dùng.
 
-## Tạo bản phát hành
+## Tạo bản phát hành trên Windows
 
-1. Tăng `version` trong `pubspec.yaml`, gồm số build sau dấu `+`, ví dụ `1.0.1+2`.
-2. Commit và push mã nguồn, sau đó push tag **khớp chính xác** với version: `v1.0.1+2`.
-3. Workflow `.github/workflows/windows-release.yml` chạy `flutter analyze`, `flutter test`, build Windows, tạo `XXMI-Manager-Setup.exe`, ký installer bằng khóa riêng rồi tạo `appcast.xml` và GitHub Release. Nếu thiếu secret hoặc version của tag không khớp, workflow dừng trước khi phát hành.
-4. Tải bộ cài từ Release và thử trên Windows. Cài bản cũ, sau đó phát hành bản mới để xác nhận nút **Settings → Kiểm tra cập nhật** tìm và cài được bản mới. Chạy workflow thủ công qua **Actions → Windows release → Run workflow** chỉ tạo artifact để thử, không tạo Release.
+1. Clone hoặc tải source mới về Windows. Với bản này, version trong `pubspec.yaml` là `1.0.1+2`.
+2. Đặt khóa riêng tại `.local-keys\windows-update\dsa_priv.pem` trên máy Windows. Không commit khóa này.
+3. Cài Flutter Windows desktop, Python, Inno Setup 6 và thêm Flutter/Dart vào `PATH`.
+4. Chạy PowerShell từ thư mục repo:
 
-Người dùng cài bằng `XXMI-Manager-Setup.exe` từ Release. Một file EXE build thô không đăng ký trình gỡ cài và không bảo đảm cùng đường dẫn cài đặt, nên không dùng file đó làm bản phát hành. App kiểm tra khi mở và mỗi 24 giờ; khi có bản mới, WinSparkle hiển thị cửa sổ xác nhận tải và chạy bộ cài.
+   ```powershell
+   .\scripts\build_windows_release.ps1
+   ```
+
+   Script tự chạy test, build Windows, đóng gói `Visual-Mods-Manager-Setup.exe`, ký installer và tạo `dist\appcast.xml` cho tag `v1.0.1+2`.
+
+   Nếu khóa nằm ở nơi khác:
+
+   ```powershell
+   .\scripts\build_windows_release.ps1 -PrivateKeyPath C:\keys\dsa_priv.pem
+   ```
+
+5. Upload `dist\Visual-Mods-Manager-Setup.exe` và `dist\appcast.xml` vào GitHub Release có tag `v1.0.1+2`.
+
+GitHub Actions vẫn có thể build tự động bằng `.github/workflows/windows-release.yml`; workflow đọc version từ `pubspec.yaml`, ký bằng secret và tạo cùng cấu trúc installer/appcast.
+
+Người dùng cài bằng `Visual-Mods-Manager-Setup.exe` từ Release. Một file EXE build thô không đăng ký trình gỡ cài và không bảo đảm cùng đường dẫn cài đặt, nên không dùng file đó làm bản phát hành. App kiểm tra khi mở và mỗi 24 giờ; khi có bản mới, WinSparkle hiển thị cửa sổ xác nhận tải và chạy bộ cài.
