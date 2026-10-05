@@ -70,6 +70,57 @@ void main() {
     }
   });
 
+  test('hides empty old root folders without deleting them', () async {
+    final oldModsFolder = Directory(p.join(modsPath, 'active sport skin'));
+    final oldDownloadFolder = Directory(
+      p.join(downloadPath, 'alice__bottom_heavy_nsfw__eea05'),
+    );
+    await oldModsFolder.create(recursive: true);
+    await oldDownloadFolder.create(recursive: true);
+    await File(p.join(oldModsFolder.path, 'desktop.ini')).writeAsString('');
+    await File(p.join(oldDownloadFolder.path, '.DS_Store')).writeAsString('');
+    await Directory(p.join(modsPath, 'A - ABC')).create(recursive: true);
+
+    await repository.ensureCharacterFolders(modsPath, downloadPath);
+
+    expect(await repository.scanSkinFolders(modsPath, downloadPath), [
+      'A (default)',
+      'A - ABC',
+    ]);
+    expect(await oldModsFolder.exists(), isTrue);
+    expect(await oldDownloadFolder.exists(), isTrue);
+    expect(
+      await Directory(p.join(downloadPath, 'active sport skin')).exists(),
+      isFalse,
+    );
+    expect(
+      await Directory(
+        p.join(modsPath, 'alice__bottom_heavy_nsfw__eea05'),
+      ).exists(),
+      isFalse,
+    );
+  });
+
+  test(
+    'keeps unrelated folders visible while they still contain files',
+    () async {
+      final oldFolder = Directory(p.join(modsPath, 'unidentified mod'));
+      await oldFolder.create(recursive: true);
+      await File(p.join(oldFolder.path, 'config.ini')).writeAsString('data');
+
+      await repository.ensureCharacterFolders(modsPath, downloadPath);
+
+      expect(await repository.scanSkinFolders(modsPath, downloadPath), [
+        'A (default)',
+        'unidentified mod',
+      ]);
+      expect(
+        await Directory(p.join(downloadPath, 'unidentified mod')).exists(),
+        isTrue,
+      );
+    },
+  );
+
   test('installs A.zip into the skin folder that contains it', () async {
     final zipDir = Directory(p.join(downloadPath, 'A - ABC'));
     await zipDir.create(recursive: true);
