@@ -9,11 +9,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
   LibraryBloc({required this.repository}) : super(const LibraryState()) {
     on<LibraryStarted>(_onStarted);
     on<LibraryRefreshed>(_onRefreshed);
-    on<LibraryTabChanged>(
-      (event, emit) => emit(
-        state.copyWith(selectedTab: event.index, clearSelectedCharacter: true),
-      ),
-    );
+    on<LibraryTabChanged>(_onTabChanged);
     on<LibraryCharacterOpened>(
       (event, emit) => emit(state.copyWith(selectedCharacter: event.character)),
     );
@@ -44,6 +40,24 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     await _sync(emit);
   }
 
+  Future<void> _onTabChanged(
+    LibraryTabChanged event,
+    Emitter<LibraryState> emit,
+  ) async {
+    emit(
+      state.copyWith(
+        selectedTab: event.index,
+        clearSelectedCharacter: true,
+        zipCounts: const {},
+      ),
+    );
+    final rootPath = event.index == 0 ? state.modsPath : state.downloadPath;
+    final counts = await repository.scanZipCounts(rootPath);
+    if (state.selectedTab == event.index) {
+      emit(state.copyWith(zipCounts: counts));
+    }
+  }
+
   Future<void> _sync(Emitter<LibraryState> emit) async {
     try {
       await repository
@@ -53,16 +67,31 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
         state.modsPath,
         state.downloadPath,
       );
-      emit(state.copyWith(status: LibraryStatus.ready, characters: characters));
+      final rootPath = state.selectedTab == 0
+          ? state.modsPath
+          : state.downloadPath;
+      final zipCounts = await repository.scanZipCounts(rootPath);
+      emit(
+        state.copyWith(
+          status: LibraryStatus.ready,
+          characters: characters,
+          zipCounts: zipCounts,
+        ),
+      );
     } catch (error) {
       final characters = await repository.scanSkinFolders(
         state.modsPath,
         state.downloadPath,
       );
+      final rootPath = state.selectedTab == 0
+          ? state.modsPath
+          : state.downloadPath;
+      final zipCounts = await repository.scanZipCounts(rootPath);
       emit(
         state.copyWith(
           status: LibraryStatus.ready,
           characters: characters,
+          zipCounts: zipCounts,
           errorMessage: error.toString(),
         ),
       );

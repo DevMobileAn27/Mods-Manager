@@ -7,12 +7,12 @@
 
 [Setup]
 AppId={{2C5E7E32-1767-4B91-A9E9-4A86D39C654B}
-AppName=XXMI Manager
+AppName=Visual Mods Manager
 AppVersion={#AppVersion}
 VersionInfoVersion={#WindowsVersion}
 AppPublisher=DevMobileAn27
-DefaultDirName={localappdata}\Programs\XXMI Manager
-DefaultGroupName=XXMI Manager
+DefaultDirName={localappdata}\Programs\Visual Mods Manager
+DefaultGroupName=Visual Mods Manager
 OutputDir=..\..\dist
 OutputBaseFilename=XXMI-Manager-Setup
 Compression=lzma2
@@ -29,11 +29,11 @@ WizardStyle=modern
 Source: "..\..\build\windows\x64\runner\Release\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
-Name: "{group}\XXMI Manager"; Filename: "{app}\xxmi_manager.exe"
-Name: "{autodesktop}\XXMI Manager"; Filename: "{app}\xxmi_manager.exe"; Tasks: desktopicon
+Name: "{group}\Visual Mods Manager"; Filename: "{app}\xxmi_manager.exe"
+Name: "{autodesktop}\Visual Mods Manager"; Filename: "{app}\xxmi_manager.exe"; Tasks: desktopicon
 
 [Tasks]
 Name: desktopicon; Description: "Create a desktop shortcut"; GroupDescription: "Additional shortcuts:"
 
 [Run]
-Filename: "{app}\xxmi_manager.exe"; Description: "Launch XXMI Manager"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\xxmi_manager.exe"; Description: "Launch Visual Mods Manager"; Flags: nowait postinstall skipifsilent

@@ -1,18 +1,17 @@
 import '../../../core/theme/app_theme.dart';
 import '../../../core/update/windows_update_service.dart';
-import 'dart:io';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 
 class SettingsPage extends StatefulWidget {
   final String modsPath;
   final String downloadPath;
-  final Future<void> Function(String modsPath, String downloadPath) onSaved;
+  final Future<void> Function(String modsPath, String downloadPath) onChanged;
   const SettingsPage({
     super.key,
     required this.modsPath,
     required this.downloadPath,
-    required this.onSaved,
+    required this.onChanged,
   });
 
   @override
@@ -46,22 +45,39 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Future<void> _pickMods() async {
     final path = await getDirectoryPath(confirmButtonText: 'Chọn thư mục Mods');
-    if (path != null) setState(() => modsPath = path);
+    if (mounted && !saving && path != null && path != modsPath) {
+      await _applyPaths(path, downloadPath);
+    }
   }
 
   Future<void> _pickDownload() async {
     final path = await getDirectoryPath(
       confirmButtonText: 'Chọn thư mục Download',
     );
-    if (path != null) setState(() => downloadPath = path);
+    if (mounted && !saving && path != null && path != downloadPath) {
+      await _applyPaths(modsPath, path);
+    }
   }
 
-  Future<void> _save() async {
+  Future<void> _applyPaths(String newModsPath, String newDownloadPath) async {
     setState(() => saving = true);
-    await Directory(modsPath).create(recursive: true);
-    await Directory(downloadPath).create(recursive: true);
-    await widget.onSaved(modsPath, downloadPath);
-    if (mounted) Navigator.pop(context);
+    try {
+      await widget.onChanged(newModsPath, newDownloadPath);
+      if (mounted) {
+        setState(() {
+          modsPath = newModsPath;
+          downloadPath = newDownloadPath;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Không thể lưu đường dẫn thư mục.')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => saving = false);
+    }
   }
 
   @override
@@ -81,46 +97,18 @@ class _SettingsPageState extends State<SettingsPage> {
         child: ListView(
           padding: const EdgeInsets.all(32),
           children: [
-            const Text(
-              'Folders',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
-            ),
-            const SizedBox(height: 6),
-            const Text(
-              'Các thư mục này được dùng để quét nhân vật và cài skin.',
-              style: TextStyle(color: AppColors.textSecondary),
-            ),
-            const SizedBox(height: 20),
             _FolderSetting(
-              title: 'Mods folder',
+              title: 'Mods',
               path: modsPath,
               icon: Icons.extension_outlined,
-              onChange: _pickMods,
+              onChange: saving ? null : _pickMods,
             ),
             const SizedBox(height: 12),
             _FolderSetting(
-              title: 'Download folder',
+              title: 'Download',
               path: downloadPath,
               icon: Icons.archive_outlined,
-              onChange: _pickDownload,
-            ),
-            const SizedBox(height: 28),
-            Align(
-              alignment: Alignment.centerRight,
-              child: FilledButton.icon(
-                onPressed: saving ? null : _save,
-                icon: saving
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: AppColors.surface,
-                        ),
-                      )
-                    : const Icon(Icons.save_outlined),
-                label: const Text('Save changes'),
-              ),
+              onChange: saving ? null : _pickDownload,
             ),
             if (WindowsUpdateService.instance.isAvailable) ...[
               const SizedBox(height: 32),
@@ -155,7 +143,7 @@ class _SettingsPageState extends State<SettingsPage> {
 class _FolderSetting extends StatelessWidget {
   final String title, path;
   final IconData icon;
-  final VoidCallback onChange;
+  final VoidCallback? onChange;
   const _FolderSetting({
     required this.title,
     required this.path,
