@@ -12,7 +12,7 @@ Khóa công khai ở `dsa_pub.pem` được nhúng vào file EXE để xác minh
 
 ## Tạo bản phát hành trên Windows
 
-1. Clone hoặc tải source mới về Windows. Với bản này, version trong `pubspec.yaml` là `1.0.1+2`.
+1. Clone hoặc tải source mới về Windows. Với bản này, version trong `pubspec.yaml` là `1.0.2+3`.
 2. Đặt khóa riêng tại `.local-keys\windows-update\dsa_priv.pem` trên máy Windows. Không commit khóa này.
 3. Cài Flutter Windows desktop, Python, Inno Setup 6 và thêm Flutter/Dart vào `PATH`.
 4. Chạy PowerShell từ thư mục repo:
@@ -21,7 +21,7 @@ Khóa công khai ở `dsa_pub.pem` được nhúng vào file EXE để xác minh
    .\scripts\build_windows_release.ps1
    ```
 
-   Script tự chạy test, build Windows, đóng gói `Visual-Mods-Manager-Setup.exe`, ký installer và tạo `dist\appcast.xml` cho tag `v1.0.1+2`.
+   Script tự chạy test, build Windows, đóng gói `Visual-Mods-Manager-Setup.exe`, ký installer và tạo `dist\appcast.xml` cho tag `v1.0.2+3`.
 
    Nếu khóa nằm ở nơi khác:
 
@@ -29,7 +29,7 @@ Khóa công khai ở `dsa_pub.pem` được nhúng vào file EXE để xác minh
    .\scripts\build_windows_release.ps1 -PrivateKeyPath C:\keys\dsa_priv.pem
    ```
 
-5. Upload `dist\Visual-Mods-Manager-Setup.exe` và `dist\appcast.xml` vào GitHub Release có tag `v1.0.1+2`.
+5. Upload `dist\Visual-Mods-Manager-Setup.exe` và `dist\appcast.xml` vào GitHub Release có tag `v1.0.2+3`.
 
 GitHub Actions vẫn có thể build tự động bằng `.github/workflows/windows-release.yml`; workflow đọc version từ `pubspec.yaml`, ký bằng secret và tạo cùng cấu trúc installer/appcast.
 

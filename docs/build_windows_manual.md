@@ -23,10 +23,10 @@ cd "C:\Users\ASUS_ROG\Documents\Github\visual-mods-manager"
 Kiểm tra version trong `pubspec.yaml`:
 
 ```yaml
-version: 1.0.1+2
+version: 1.0.2+3
 ```
 
-Tag GitHub tương ứng phải là `v1.0.1+2`.
+Tag GitHub tương ứng phải là `v1.0.2+3`.
 
 ## Build một lượt
 
