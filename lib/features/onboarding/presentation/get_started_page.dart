@@ -99,7 +99,7 @@ class _SetupPageState extends State<SetupPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'XXMI Manager',
+                'Visual Mods Manager',
                 style: TextStyle(fontSize: 34, fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 8),

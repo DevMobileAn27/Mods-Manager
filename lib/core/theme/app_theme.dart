@@ -17,6 +17,8 @@ abstract final class AppColors {
   static const iconMuted = Color(0x73000000);
   static const onPrimary = Color(0xffffffff);
   static const archive = Color(0xffffb020);
+  static const success = Color(0xff2e9d5b);
+  static const danger = Color(0xffd64545);
   static const shadow = Color(0x10000000);
   static const transparent = Color(0x00000000);
 }

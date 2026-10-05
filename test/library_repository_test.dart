@@ -80,12 +80,19 @@ void main() {
     await zip.writeAsBytes(ZipEncoder().encode(archive));
 
     await repository.ensureCharacterFolders(modsPath, downloadPath);
-    await repository.installZip(zip, modsPath, 'A - ABC');
+    final installedFolder = await repository.installZip(
+      zip,
+      modsPath,
+      'A - ABC',
+    );
 
     expect(
-      await File(p.join(modsPath, 'A - ABC', 'config.ini')).readAsString(),
+      await File(
+        p.join(modsPath, 'A - ABC', installedFolder, 'config.ini'),
+      ).readAsString(),
       'skin data',
     );
+    expect(installedFolder, matches(RegExp(r'^A_\d{2}_\d{2}_\d{2}(?:_\d+)?$')));
     expect(
       await File(p.join(modsPath, 'A (default)', 'config.ini')).exists(),
       isFalse,

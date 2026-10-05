@@ -12,7 +12,7 @@ class XxmiApp extends StatelessWidget {
   const XxmiApp({super.key});
   @override
   Widget build(BuildContext context) => MaterialApp(
-    title: 'XXMI Manager',
+    title: 'Visual Mods Manager',
     debugShowCheckedModeBanner: false,
     theme: AppTheme.light,
     home: const RootPage(),

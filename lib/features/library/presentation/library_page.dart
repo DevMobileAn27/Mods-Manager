@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:path/path.dart' as p;
+import 'animated_search_field.dart';
 import '../../../core/character_catalog.dart';
 import '../bloc/library_bloc.dart';
 import '../bloc/library_event.dart';
@@ -33,23 +34,48 @@ class MainPage extends StatelessWidget {
   );
 }
 
-class _LibraryShell extends StatelessWidget {
+class _LibraryShell extends StatefulWidget {
   final Future<void> Function(String, String) onPathsChanged;
   const _LibraryShell({required this.onPathsChanged});
+
+  @override
+  State<_LibraryShell> createState() => _LibraryShellState();
+}
+
+class _LibraryShellState extends State<_LibraryShell> {
+  String searchQuery = '';
 
   @override
   Widget build(BuildContext context) => BlocBuilder<LibraryBloc, LibraryState>(
     builder: (context, state) {
       final root = state.selectedTab == 0 ? state.modsPath : state.downloadPath;
+      final query = searchQuery.trim().toLowerCase();
+      final visibleCharacters = query.isEmpty
+          ? state.characters
+          : state.characters
+                .where(
+                  (name) =>
+                      _displaySkinName(name).toLowerCase().contains(query),
+                )
+                .toList();
       return Scaffold(
         backgroundColor: AppColors.background,
         body: Column(
           children: [
-            LibraryTopBar(state: state, onPathsChanged: onPathsChanged),
+            LibraryTopBar(
+              state: state,
+              onPathsChanged: widget.onPathsChanged,
+              onSearchChanged: (value) => setState(() => searchQuery = value),
+            ),
             Expanded(
               child: state.selectedCharacter == null
                   ? CharacterGrid(
-                      characters: state.characters,
+                      // A new grid element per tab gives each tab a fresh
+                      // scroll position, so switching tabs always starts at
+                      // the beginning of its character list.
+                      key: ValueKey(state.selectedTab),
+                      characters: visibleCharacters,
+                      zipCounts: state.zipCounts,
                       loading: state.status == LibraryStatus.loading,
                       onSelect: (name) => context.read<LibraryBloc>().add(
                         LibraryCharacterOpened(name),
@@ -78,10 +104,12 @@ class _LibraryShell extends StatelessWidget {
 class LibraryTopBar extends StatelessWidget {
   final LibraryState state;
   final Future<void> Function(String, String) onPathsChanged;
+  final ValueChanged<String> onSearchChanged;
   const LibraryTopBar({
     super.key,
     required this.state,
     required this.onPathsChanged,
+    required this.onSearchChanged,
   });
 
   @override
@@ -109,6 +137,8 @@ class LibraryTopBar extends StatelessWidget {
           ),
         ),
         const Spacer(),
+        AnimatedSearchField(onChanged: onSearchChanged),
+        const SizedBox(width: 10),
         IconButton(
           tooltip: 'Làm mới',
           onPressed: () =>
@@ -126,7 +156,7 @@ class LibraryTopBar extends StatelessWidget {
                 builder: (_) => SettingsPage(
                   modsPath: state.modsPath,
                   downloadPath: state.downloadPath,
-                  onSaved: (mods, download) async {
+                  onChanged: (mods, download) async {
                     await onPathsChanged(mods, download);
                     bloc.add(
                       LibraryStarted(modsPath: mods, downloadPath: download),
@@ -179,11 +209,13 @@ class LibraryTopBar extends StatelessWidget {
 
 class CharacterGrid extends StatelessWidget {
   final List<String> characters;
+  final Map<String, int> zipCounts;
   final bool loading;
   final ValueChanged<String> onSelect;
   const CharacterGrid({
     super.key,
     required this.characters,
+    required this.zipCounts,
     required this.loading,
     required this.onSelect,
   });
@@ -191,6 +223,9 @@ class CharacterGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (loading) return const Center(child: CircularProgressIndicator());
+    if (characters.isEmpty) {
+      return const Center(child: Text('Không tìm thấy nhân vật hoặc skin.'));
+    }
     return LayoutBuilder(
       builder: (context, box) {
         const gap = 14.0;
@@ -198,7 +233,8 @@ class CharacterGrid extends StatelessWidget {
         final count = (box.maxWidth / 230).floor().clamp(2, 6);
         final cardWidth =
             (box.maxWidth - horizontalPadding * 2 - gap * (count - 1)) / count;
-        final avatarSize = cardWidth < 190 ? 100.0 : 125.0;
+        final baseAvatarSize = cardWidth < 190 ? 100.0 : 125.0;
+        final avatarSize = baseAvatarSize * 1.5;
         final cardHeight = avatarSize * 1.15 + 80;
         final groups = <String, List<String>>{};
         for (final skinName in characters) {
@@ -206,26 +242,23 @@ class CharacterGrid extends StatelessWidget {
               .putIfAbsent(_characterForSkin(skinName), () => [])
               .add(skinName);
         }
-        final groupWidgets = <Widget>[];
-        for (final skins in groups.values) {
-          for (var start = 0; start < skins.length; start += count) {
-            final batch = skins.skip(start).take(count).toList();
-            groupWidgets.add(
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  for (var index = 0; index < batch.length; index++) ...[
-                    if (index > 0) const SizedBox(width: gap),
-                    _skinCard(batch[index], cardWidth, cardHeight, avatarSize),
-                  ],
-                ],
-              ),
-            );
-          }
-        }
-        return SingleChildScrollView(
+        final orderedSkins = groups.values.expand((skins) => skins).toList();
+        return GridView.builder(
           padding: const EdgeInsets.fromLTRB(28, 24, 28, 28),
-          child: Wrap(spacing: gap, runSpacing: gap, children: groupWidgets),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: count,
+            crossAxisSpacing: gap,
+            mainAxisSpacing: gap,
+            childAspectRatio: cardWidth / cardHeight,
+          ),
+          itemCount: orderedSkins.length,
+          itemBuilder: (context, index) => _skinCard(
+            orderedSkins[index],
+            cardWidth,
+            cardHeight,
+            avatarSize,
+            zipCounts[orderedSkins[index].toLowerCase()] ?? 0,
+          ),
         );
       },
     );
@@ -236,42 +269,70 @@ class CharacterGrid extends StatelessWidget {
     double width,
     double height,
     double avatarSize,
+    int zipCount,
   ) => SizedBox(
     width: width,
     height: height,
-    child: Tooltip(
-      message: skinName,
-      child: InkWell(
-        onTap: () => onSelect(skinName),
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.border),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(10, 14, 10, 12),
-            child: Column(
-              children: [
-                HeroAvatar(
-                  name: _characterForSkin(skinName),
-                  size: avatarSize,
-                  assetPath: _skinAssetFor(skinName),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  _displaySkinName(skinName),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
+    child: InkWell(
+      onTap: () => onSelect(skinName),
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(10, 14, 10, 12),
+          child: Column(
+            children: [
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  HeroAvatar(
+                    name: _characterForSkin(skinName),
+                    size: avatarSize,
+                    assetPath: _skinAssetFor(skinName),
                   ),
+                  if (zipCount > 0)
+                    Positioned(
+                      top: 10,
+                      right: 10,
+                      child: Container(
+                        width: 28,
+                        height: 28,
+                        decoration: const BoxDecoration(
+                          color: Color.fromRGBO(0, 0, 0, 0.5),
+                          shape: BoxShape.circle,
+                        ),
+                        alignment: Alignment.center,
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            '$zipCount',
+                            style: const TextStyle(
+                              color: AppColors.surface,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Text(
+                _displaySkinName(skinName),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
@@ -293,6 +354,7 @@ class HeroAvatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final hue = (name.codeUnitAt(0) * 37) % 360;
+    final attribute = zzzCharacterInfoFor(name)?.attribute;
     final asset = assetPath ?? zzzAvatarAssets[name];
     final width = size * .78;
     final height = size * 1.15;
@@ -314,7 +376,9 @@ class HeroAvatar extends StatelessWidget {
       width: width,
       height: height,
       decoration: BoxDecoration(
-        color: HSVColor.fromAHSV(1, hue.toDouble(), .28, .95).toColor(),
+        color:
+            _attributeBackground(attribute) ??
+            HSVColor.fromAHSV(1, hue.toDouble(), .28, .95).toColor(),
         borderRadius: BorderRadius.circular(12),
       ),
       clipBehavior: Clip.antiAlias,
@@ -322,13 +386,27 @@ class HeroAvatar extends StatelessWidget {
           ? Center(child: fallback)
           : Image.asset(
               asset,
-              fit: BoxFit.cover,
+              fit: BoxFit.contain,
               errorBuilder: (context, error, stackTrace) =>
                   Center(child: fallback),
             ),
     );
   }
 }
+
+Color? _attributeBackground(ZzzAttribute? attribute) => switch (attribute) {
+  ZzzAttribute.physical => const Color(0xffe9c77b),
+  ZzzAttribute.fire => const Color(0xfff2a36f),
+  ZzzAttribute.ice => const Color(0xff9cd9ea),
+  ZzzAttribute.electric => const Color(0xffb8a4e8),
+  ZzzAttribute.ether => const Color(0xffc99be6),
+  ZzzAttribute.wind => const Color(0xffa8d9b0),
+  ZzzAttribute.frost => const Color(0xff91c9d6),
+  ZzzAttribute.lumiflux => const Color(0xfff2d58a),
+  ZzzAttribute.honedEdge => const Color(0xffd7dce3),
+  ZzzAttribute.auricInk => const Color(0xffe3bd72),
+  null => null,
+};
 
 String _characterForSkin(String skinName) {
   final lower = skinName.toLowerCase();
@@ -392,7 +470,9 @@ class _DetailViewState extends State<DetailView> {
     );
     entries = [];
     if (await dir.exists()) {
-      entries = await dir.list(followLinks: false).toList();
+      entries = (await dir.list(followLinks: false).toList())
+          .where((entry) => !_isHiddenFileSystemEntry(entry))
+          .toList();
       entries.sort(
         (a, b) => p
             .basename(a.path)
@@ -401,6 +481,11 @@ class _DetailViewState extends State<DetailView> {
       );
     }
     if (mounted) setState(() => loading = false);
+  }
+
+  bool _isHiddenFileSystemEntry(FileSystemEntity entry) {
+    final name = p.basename(entry.path).toLowerCase();
+    return name.startsWith('.') || name == 'thumbs.db' || name == 'desktop.ini';
   }
 
   Future<void> delete(FileSystemEntity e) async {
@@ -432,17 +517,56 @@ class _DetailViewState extends State<DetailView> {
   }
 
   Future<void> useZip(File zip) async {
-    await context.read<LibraryBloc>().repository.installZip(
-      zip,
-      widget.modsRoot,
-      widget.skinName,
-    );
+    final installedFolder = await context
+        .read<LibraryBloc>()
+        .repository
+        .installZip(zip, widget.modsRoot, widget.skinName);
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Đã cài skin vào Mods/${widget.skinName}')),
+        SnackBar(
+          content: Text(
+            'Đã cài skin vào Mods/${widget.skinName}/$installedFolder',
+          ),
+        ),
       );
     }
     widget.onRefresh();
+  }
+
+  Future<void> openFolder() async {
+    final directory = await context
+        .read<LibraryBloc>()
+        .repository
+        .skinDirectory(widget.root, widget.skinName);
+    if (!await directory.exists()) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Không tìm thấy thư mục skin.')),
+        );
+      }
+      return;
+    }
+
+    final command = Platform.isWindows
+        ? ('explorer.exe', <String>[directory.path])
+        : Platform.isMacOS
+        ? ('open', <String>[directory.path])
+        : ('xdg-open', <String>[directory.path]);
+    try {
+      await Process.start(
+        command.$1,
+        command.$2,
+        mode: ProcessStartMode.detached,
+      );
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Không thể mở thư mục trong trình quản lý file.'),
+          ),
+        );
+      }
+    }
   }
 
   void menu(Offset pos, FileSystemEntity e) async {
@@ -453,21 +577,25 @@ class _DetailViewState extends State<DetailView> {
     final action = await showMenu<String>(
       context: context,
       position: RelativeRect.fromLTRB(pos.dx, pos.dy, pos.dx + 1, pos.dy + 1),
+      menuPadding: EdgeInsets.zero,
       items: [
         if (isZip)
           const PopupMenuItem(
             value: 'use',
             child: ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: Icon(Icons.check_circle_outline),
-              title: Text('Dùng skin này'),
+              leading: Icon(
+                Icons.check_circle_outline,
+                color: AppColors.success,
+              ),
+              title: Text('Dùng trang phục này'),
             ),
           ),
         const PopupMenuItem(
           value: 'delete',
           child: ListTile(
             contentPadding: EdgeInsets.zero,
-            leading: Icon(Icons.delete_outline),
+            leading: Icon(Icons.delete_outline, color: AppColors.danger),
             title: Text('Xoá'),
           ),
         ),
@@ -482,97 +610,127 @@ class _DetailViewState extends State<DetailView> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(28, 22, 28, 14),
+        Container(
+          padding: const EdgeInsets.fromLTRB(28, 14, 22, 14),
+          decoration: const BoxDecoration(
+            color: AppColors.surface,
+            border: Border(bottom: BorderSide(color: AppColors.border)),
+          ),
           child: Row(
             children: [
               IconButton(
                 onPressed: widget.onBack,
                 icon: const Icon(Icons.arrow_back),
               ),
-              HeroAvatar(
-                name: _characterForSkin(widget.skinName),
-                size: 40,
-                assetPath: _skinAssetFor(widget.skinName),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                _displaySkinName(widget.skinName),
-                style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w700,
+              const SizedBox(width: 8),
+              Expanded(
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    _displaySkinName(widget.skinName),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                 ),
               ),
-              const Spacer(),
-              IconButton(onPressed: load, icon: const Icon(Icons.refresh)),
+              IconButton(
+                tooltip: 'Mở trong thư mục',
+                onPressed: openFolder,
+                icon: const Icon(Icons.folder_open_outlined),
+              ),
             ],
           ),
         ),
-        const Divider(height: 1),
         Expanded(
           child: loading
               ? const Center(child: CircularProgressIndicator())
               : entries.isEmpty
               ? const Center(child: Text('Thư mục này đang trống.'))
-              : ListView.separated(
-                  padding: const EdgeInsets.all(28),
-                  itemCount: entries.length,
-                  separatorBuilder: (context, index) =>
-                      const SizedBox(height: 8),
-                  itemBuilder: (c, i) {
-                    final e = entries[i],
-                        isDir = e is Directory,
-                        isZip =
-                            !isDir &&
-                            p.extension(e.path).toLowerCase() == '.zip';
-                    return GestureDetector(
-                      onSecondaryTapDown: (d) => menu(d.globalPosition, e),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.surface,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: AppColors.borderStrong),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              isDir
-                                  ? Icons.folder_outlined
-                                  : isZip
-                                  ? Icons.archive_outlined
-                                  : Icons.insert_drive_file_outlined,
-                              color: isDir
-                                  ? AppColors.archive
-                                  : AppColors.primary,
-                            ),
-                            const SizedBox(width: 14),
-                            Expanded(
-                              child: Text(
-                                p.basename(e.path),
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                            if (isZip && widget.isDownload)
-                              const Chip(
-                                label: Text(
-                                  'ZIP',
-                                  style: TextStyle(fontSize: 11),
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
+              : FileEntryGrid(entries: entries, onContextMenu: menu),
         ),
       ],
     );
   }
+}
+
+class FileEntryGrid extends StatelessWidget {
+  final List<FileSystemEntity> entries;
+  final void Function(Offset position, FileSystemEntity entry) onContextMenu;
+
+  const FileEntryGrid({
+    super.key,
+    required this.entries,
+    required this.onContextMenu,
+  });
+
+  @override
+  Widget build(BuildContext context) => GridView.builder(
+    padding: const EdgeInsets.all(28),
+    gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+      maxCrossAxisExtent: 240,
+      mainAxisExtent: 170,
+      crossAxisSpacing: 14,
+      mainAxisSpacing: 14,
+    ),
+    itemCount: entries.length,
+    itemBuilder: (context, index) {
+      final entry = entries[index];
+      final isDirectory = entry is Directory;
+      final isZip =
+          !isDirectory && p.extension(entry.path).toLowerCase() == '.zip';
+      final icon = isDirectory
+          ? Icons.folder_outlined
+          : isZip
+          ? Icons.archive_outlined
+          : Icons.insert_drive_file_outlined;
+      final color = isDirectory ? AppColors.archive : AppColors.primary;
+      final iconBackground = isDirectory
+          ? AppColors.archive.withValues(alpha: 0.12)
+          : AppColors.primarySoft;
+
+      return GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onSecondaryTapDown: (details) =>
+            onContextMenu(details.globalPosition, entry),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(12, 16, 12, 14),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: AppColors.borderStrong),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 72,
+                height: 72,
+                decoration: BoxDecoration(
+                  color: iconBackground,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Icon(icon, size: 40, color: color),
+              ),
+              const SizedBox(height: 14),
+              Text(
+                p.basename(entry.path),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: AppColors.text,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
 }

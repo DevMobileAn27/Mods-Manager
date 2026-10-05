@@ -1,5 +1,5 @@
 name: xxmi_manager
-description: "Desktop manager for Zenless Zone Zero mods and downloaded skins."
+description: "Visual Mods Manager for Zenless Zone Zero mods and downloaded skins."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -75,26 +75,35 @@ flutter:
     - assets/characters/billy_kid/
     - assets/characters/burnice_white/
     - assets/characters/caesar_king/
+    - assets/characters/cissia/
+    - assets/characters/claret_flint/
     - assets/characters/corin_wickes/
     - assets/characters/dialyn/
     - assets/characters/ellen_joe/
     - assets/characters/evelyn_chevalier/
     - assets/characters/grace_howard/
+    - assets/characters/hugo_vlad/
     - assets/characters/jane_doe/
     - assets/characters/ju_fufu/
     - assets/characters/koleda_belobog/
+    - assets/characters/komano_manato/
     - assets/characters/lighter/
     - assets/characters/lucia/
     - assets/characters/lucy/
     - assets/characters/lycaon/
     - assets/characters/miyabi/
+    - assets/characters/nangong_yu/
     - assets/characters/nekomata/
     - assets/characters/nicole_demara/
+    - assets/characters/norma_hollowell/
     - assets/characters/orphie_and_magus/
     - assets/characters/pan_yinhu/
     - assets/characters/piper_wheel/
+    - assets/characters/promeia/
     - assets/characters/pulchra/
+    - assets/characters/pyrois/
     - assets/characters/qingyi/
+    - assets/characters/remielle_dan/
     - assets/characters/rina/
     - assets/characters/roxy_ifrita_pryce/
     - assets/characters/seed/
@@ -102,10 +111,18 @@ flutter:
     - assets/characters/soldier_0_anby/
     - assets/characters/soldier_11/
     - assets/characters/soukaku/
+    - assets/characters/sigrid_de_l_azur/
+    - assets/characters/starlight_billy_kid/
+    - assets/characters/sunna/
     - assets/characters/trigger/
+    - assets/characters/ukinami_yuzuha/
+    - assets/characters/velina_airgid/
     - assets/characters/vivian/
     - assets/characters/yanagi/
+    - assets/characters/ye_shunguang/
+    - assets/characters/yidhari_murphy/
     - assets/characters/yixuan/
+    - assets/characters/zhao/
     - assets/characters/zhu_yuan/
 
   # To add assets to your application, add an assets section, like this:

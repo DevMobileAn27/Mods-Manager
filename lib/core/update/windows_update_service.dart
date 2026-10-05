@@ -8,7 +8,7 @@ class WindowsUpdateService {
 
   static final instance = WindowsUpdateService._();
   static const feedUrl =
-      'https://github.com/DevMobileAn27/Mods-Manager/releases/latest/download/appcast.xml';
+      'https://github.com/DevMobileAn27/visual-mods-manager/releases/latest/download/appcast.xml';
 
   bool get isAvailable => Platform.isWindows;
   Future<void>? _ready;

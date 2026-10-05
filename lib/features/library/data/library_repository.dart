@@ -88,6 +88,32 @@ class LibraryRepository {
       ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
   }
 
+  Future<Map<String, int>> scanZipCounts(String rootPath) async {
+    final counts = <String, int>{};
+    final root = Directory(rootPath);
+    if (!await root.exists()) return counts;
+    try {
+      await for (final entity in root.list(followLinks: false)) {
+        if (entity is! Directory) continue;
+        var count = 0;
+        await for (final child in entity.list(followLinks: false)) {
+          final name = p.basename(child.path);
+          if (child is File &&
+              !name.startsWith('.') &&
+              p.extension(name).toLowerCase() == '.zip') {
+            count++;
+          }
+        }
+        if (count > 0) {
+          counts[p.basename(entity.path).toLowerCase()] = count;
+        }
+      }
+    } catch (_) {
+      // A folder that cannot be read should not block the rest of the grid.
+    }
+    return counts;
+  }
+
   Future<Directory> skinDirectory(String rootPath, String skinName) async {
     final root = Directory(rootPath);
     if (await root.exists()) {
@@ -101,9 +127,16 @@ class LibraryRepository {
     return Directory(p.join(rootPath, skinName));
   }
 
-  Future<void> installZip(File zip, String modsPath, String skinName) async {
+  Future<String> installZip(File zip, String modsPath, String skinName) async {
     final dest = await skinDirectory(modsPath, skinName);
     final archive = ZipDecoder().decodeBytes(await zip.readAsBytes());
+    final folderName = _datedInstallFolderName(skinName, DateTime.now());
+    final stagingRoot = await Directory.systemTemp.createTemp(
+      'visual-mods-install-',
+    );
+    final staging = Directory(p.join(stagingRoot.path, folderName));
+    await staging.create(recursive: true);
+
     final entries = archive.toList();
     final firstSegments = <String>{};
     var canStripRoot = true;
@@ -121,28 +154,94 @@ class LibraryRepository {
         ? firstSegments.first
         : null;
 
-    await dest.create(recursive: true);
-    for (final entry in entries) {
-      var relative = entry.name.replaceAll('\\', '/');
-      if (commonRoot != null && relative.startsWith('$commonRoot/')) {
-        relative = relative.substring(commonRoot.length + 1);
+    try {
+      for (final entry in entries) {
+        var relative = entry.name.replaceAll('\\', '/');
+        if (commonRoot != null && relative.startsWith('$commonRoot/')) {
+          relative = relative.substring(commonRoot.length + 1);
+        }
+        relative = p.normalize(relative);
+        if (relative.isEmpty ||
+            relative == '.' ||
+            p.isAbsolute(relative) ||
+            relative == '..' ||
+            relative.startsWith('../')) {
+          continue;
+        }
+        final out = p.join(staging.path, relative);
+        if (!p.isWithin(staging.path, out)) continue;
+        if (entry.isFile) {
+          final file = File(out);
+          await file.parent.create(recursive: true);
+          await file.writeAsBytes(entry.content);
+        } else {
+          await Directory(out).create(recursive: true);
+        }
       }
-      relative = p.normalize(relative);
-      if (relative.isEmpty ||
-          relative == '.' ||
-          p.isAbsolute(relative) ||
-          relative == '..' ||
-          relative.startsWith('../')) {
-        continue;
+
+      await dest.create(recursive: true);
+      final target = await _nextAvailableDirectory(dest, folderName);
+      await _moveDirectory(staging, target);
+      return p.basename(target.path);
+    } finally {
+      if (await stagingRoot.exists()) {
+        await stagingRoot.delete(recursive: true);
       }
-      final out = p.join(dest.path, relative);
-      if (!p.isWithin(dest.path, out)) continue;
-      if (entry.isFile) {
-        final file = File(out);
-        await file.parent.create(recursive: true);
-        await file.writeAsBytes(entry.content);
-      } else {
-        await Directory(out).create(recursive: true);
+    }
+  }
+
+  String _datedInstallFolderName(String skinName, DateTime date) {
+    var character = skinName;
+    for (final candidate in characterCatalog) {
+      final lowerSkin = skinName.toLowerCase();
+      final lowerCandidate = candidate.toLowerCase();
+      if (lowerSkin == '$lowerCandidate (default)' ||
+          lowerSkin.startsWith('$lowerCandidate - ')) {
+        character = candidate;
+        break;
+      }
+    }
+    final safeCharacter = character
+        .trim()
+        .replaceAll(RegExp(r'\s+'), '_')
+        .replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
+    final day = date.day.toString().padLeft(2, '0');
+    final month = date.month.toString().padLeft(2, '0');
+    final year = (date.year % 100).toString().padLeft(2, '0');
+    return [safeCharacter, day, month, year].join('_');
+  }
+
+  Future<Directory> _nextAvailableDirectory(
+    Directory parent,
+    String baseName,
+  ) async {
+    var suffix = 0;
+    while (true) {
+      final name = suffix == 0 ? baseName : '${baseName}_$suffix';
+      final candidate = Directory(p.join(parent.path, name));
+      if (!await candidate.exists()) return candidate;
+      suffix++;
+    }
+  }
+
+  Future<void> _moveDirectory(Directory source, Directory target) async {
+    await target.parent.create(recursive: true);
+    try {
+      await source.rename(target.path);
+    } on FileSystemException {
+      await _copyDirectory(source, target);
+      await source.delete(recursive: true);
+    }
+  }
+
+  Future<void> _copyDirectory(Directory source, Directory target) async {
+    await target.create(recursive: true);
+    await for (final entity in source.list(followLinks: false)) {
+      final destination = p.join(target.path, p.basename(entity.path));
+      if (entity is Directory) {
+        await _copyDirectory(entity, Directory(destination));
+      } else if (entity is File) {
+        await entity.copy(destination);
       }
     }
   }
