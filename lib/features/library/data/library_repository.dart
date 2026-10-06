@@ -3,12 +3,25 @@ import 'dart:io';
 import 'package:archive/archive.dart';
 import 'package:path/path.dart' as p;
 
+typedef RarExtractor = Future<void> Function(File archive, Directory output);
+
+class ModFolderStatus {
+  final int folderCount;
+  final bool hasContent;
+
+  const ModFolderStatus(this.folderCount, this.hasContent);
+
+  bool get isValid => folderCount == 1 && hasContent;
+}
+
 class LibraryRepository {
   final List<String> characterCatalog;
   final Map<String, List<String>> skinCatalog;
+  final RarExtractor? rarExtractor;
   const LibraryRepository({
     required this.characterCatalog,
     this.skinCatalog = const {},
+    this.rarExtractor,
   });
 
   Future<void> ensureCharacterFolders(
@@ -99,7 +112,7 @@ class LibraryRepository {
       ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
   }
 
-  Future<Map<String, int>> scanZipCounts(String rootPath) async {
+  Future<Map<String, int>> scanArchiveCounts(String rootPath) async {
     final counts = <String, int>{};
     final root = Directory(rootPath);
     if (!await root.exists()) return counts;
@@ -111,7 +124,7 @@ class LibraryRepository {
           final name = p.basename(child.path);
           if (child is File &&
               !name.startsWith('.') &&
-              p.extension(name).toLowerCase() == '.zip') {
+              {'.zip', '.rar'}.contains(p.extension(name).toLowerCase())) {
             count++;
           }
         }
@@ -125,14 +138,17 @@ class LibraryRepository {
     return counts;
   }
 
-  Future<Map<String, int>> scanChildFolderCounts(String rootPath) async {
-    final counts = <String, int>{};
+  Future<Map<String, ModFolderStatus>> scanModFolderStatuses(
+    String rootPath,
+  ) async {
+    final statuses = <String, ModFolderStatus>{};
     final root = Directory(rootPath);
-    if (!await root.exists()) return counts;
+    if (!await root.exists()) return statuses;
     try {
       await for (final entity in root.list(followLinks: false)) {
         if (entity is! Directory) continue;
         var count = 0;
+        Directory? onlyFolder;
         await for (final child in entity.list(followLinks: false)) {
           if (child is! Directory) continue;
           final name = p.basename(child.path).toLowerCase();
@@ -142,15 +158,46 @@ class LibraryRepository {
             continue;
           }
           count++;
+          if (count == 1) onlyFolder = child;
         }
         if (count > 0) {
-          counts[p.basename(entity.path).toLowerCase()] = count;
+          final hasContent =
+              count == 1 &&
+              onlyFolder != null &&
+              await _containsVisibleFile(onlyFolder);
+          statuses[p.basename(entity.path).toLowerCase()] = ModFolderStatus(
+            count,
+            hasContent,
+          );
         }
       }
     } catch (_) {
       // A folder that cannot be read should not block the rest of the grid.
     }
-    return counts;
+    return statuses;
+  }
+
+  Future<bool> _containsVisibleFile(Directory directory) async {
+    try {
+      await for (final entry in directory.list(
+        recursive: true,
+        followLinks: false,
+      )) {
+        if (entry is! File) continue;
+        final parts = p.split(p.relative(entry.path, from: directory.path));
+        if (parts.every(
+          (part) =>
+              !part.startsWith('.') &&
+              part.toLowerCase() != 'thumbs.db' &&
+              part.toLowerCase() != 'desktop.ini',
+        )) {
+          return true;
+        }
+      }
+    } on FileSystemException {
+      return false;
+    }
+    return false;
   }
 
   Future<Directory> skinDirectory(String rootPath, String skinName) async {
@@ -196,8 +243,12 @@ class LibraryRepository {
       } else {
         final extracted = Directory(p.join(stagingRoot.path, 'rar'));
         await extracted.create();
-        await _extractRarArchive(archiveFile, extracted);
+        await (rarExtractor ?? _extractRarArchive)(archiveFile, extracted);
         await _stageExtractedArchive(extracted, staging);
+      }
+
+      if (!await _containsVisibleFile(staging)) {
+        throw const FileSystemException('Archive không chứa file mod hợp lệ.');
       }
 
       await dest.create(recursive: true);
@@ -231,6 +282,7 @@ class LibraryRepository {
 
     for (final entry in entries) {
       var relative = entry.name.replaceAll('\\', '/');
+      if (commonRoot != null && relative == commonRoot) continue;
       if (commonRoot != null && relative.startsWith('$commonRoot/')) {
         relative = relative.substring(commonRoot.length + 1);
       }
@@ -281,6 +333,7 @@ class LibraryRepository {
       final original = relativePaths[entry];
       if (original == null) continue;
       var relative = original;
+      if (commonRoot != null && relative == commonRoot) continue;
       if (commonRoot != null && relative.startsWith('$commonRoot/')) {
         relative = relative.substring(commonRoot.length + 1);
       }
@@ -291,6 +344,7 @@ class LibraryRepository {
       if (entry is Directory) {
         await Directory(out).create(recursive: true);
       } else if (entry is File) {
+        await File(out).parent.create(recursive: true);
         await entry.copy(out);
       }
     }
@@ -305,11 +359,27 @@ class LibraryRepository {
 
   Future<void> _extractRarArchive(File archiveFile, Directory output) async {
     final outputPath = output.path;
+    final bundled7Zip = p.join(
+      p.dirname(Platform.resolvedExecutable),
+      'tools',
+      '7zip',
+      '7z.exe',
+    );
     final commands = <(String, List<String>)>[
-      ('tar.exe', ['-xf', archiveFile.path, '-C', outputPath]),
-      ('7z.exe', ['x', archiveFile.path, '-o$outputPath', '-y']),
-      ('7za.exe', ['x', archiveFile.path, '-o$outputPath', '-y']),
-      ('UnRAR.exe', ['x', '-o+', archiveFile.path, outputPath]),
+      if (Platform.isWindows && await File(bundled7Zip).exists())
+        (bundled7Zip, ['x', archiveFile.path, '-o$outputPath', '-y']),
+      if (Platform.isWindows)
+        ('tar.exe', ['-xf', archiveFile.path, '-C', outputPath]),
+      if (!Platform.isWindows)
+        ('bsdtar', ['-xf', archiveFile.path, '-C', outputPath]),
+      (
+        Platform.isWindows ? '7z.exe' : '7z',
+        ['x', archiveFile.path, '-o$outputPath', '-y'],
+      ),
+      (
+        Platform.isWindows ? 'UnRAR.exe' : 'unrar',
+        ['x', '-o+', archiveFile.path, outputPath],
+      ),
     ];
     final errors = <String>[];
     for (final command in commands) {
@@ -323,9 +393,17 @@ class LibraryRepository {
       } on ProcessException catch (error) {
         errors.add('${command.$1}: ${error.message}');
       }
+      // A failed tool may leave partially extracted files behind.
+      await for (final entry in output.list(followLinks: false)) {
+        if (entry is Directory) {
+          await entry.delete(recursive: true);
+        } else {
+          await entry.delete();
+        }
+      }
     }
     throw FileSystemException(
-      'Không thể giải nén file RAR. Hãy cập nhật Windows hoặc cài 7-Zip.\n'
+      'Không thể giải nén file RAR.\n'
       '${errors.join('\n')}',
       archiveFile.path,
     );

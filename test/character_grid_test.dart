@@ -3,6 +3,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:xxmi_manager/core/character_catalog.dart';
 import 'package:xxmi_manager/features/library/presentation/library_page.dart';
+import 'package:xxmi_manager/features/library/data/library_repository.dart';
 
 void main() {
   testWidgets('wheel keeps scrolling while hovering an avatar', (tester) async {
@@ -18,7 +19,7 @@ void main() {
             characters: zzzCharacterFolders
                 .map((name) => '$name (default)')
                 .toList(),
-            zipCounts: const {},
+            archiveCounts: const {},
             loading: false,
             onSelect: (_) {},
           ),
@@ -66,7 +67,7 @@ void main() {
               return showGrid
                   ? CharacterGrid(
                       characters: characters,
-                      zipCounts: const {},
+                      archiveCounts: const {},
                       loading: false,
                       onSelect: (_) {},
                     )
@@ -103,11 +104,11 @@ void main() {
         home: Scaffold(
           body: CharacterGrid(
             characters: const ['A (default)', 'B (default)', 'C (default)'],
-            zipCounts: const {},
-            folderCounts: const {
-              'a (default)': 1,
-              'b (default)': 2,
-              'c (default)': 0,
+            archiveCounts: const {},
+            folderStatuses: const {
+              'a (default)': ModFolderStatus(1, true),
+              'b (default)': ModFolderStatus(2, true),
+              'c (default)': ModFolderStatus(1, false),
             },
             showFolderStatus: true,
             loading: false,
@@ -118,7 +119,7 @@ void main() {
     );
 
     expect(find.byIcon(Icons.check), findsOneWidget);
-    expect(find.byIcon(Icons.close), findsOneWidget);
+    expect(find.byIcon(Icons.close), findsNWidgets(2));
   });
 
   testWidgets('keeps a skin immediately after its character across rows', (
@@ -139,7 +140,7 @@ void main() {
               'Astra Yao (default)',
               'Astra Yao - Chandelier',
             ],
-            zipCounts: const {},
+            archiveCounts: const {},
             loading: false,
             onSelect: (_) {},
           ),
@@ -181,7 +182,7 @@ void main() {
               'Ellen Joe (default)',
               'Ellen Joe - On Campus',
             ],
-            zipCounts: const {},
+            archiveCounts: const {},
             loading: false,
             onSelect: (_) {},
           ),

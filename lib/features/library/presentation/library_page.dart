@@ -75,8 +75,8 @@ class _LibraryShellState extends State<_LibraryShell> {
                       key: ValueKey(state.selectedTab),
                       scrollStorageKey: 'library-tab-${state.selectedTab}',
                       characters: visibleCharacters,
-                      zipCounts: state.zipCounts,
-                      folderCounts: state.modFolderCounts,
+                      archiveCounts: state.archiveCounts,
+                      folderStatuses: state.modFolderStatuses,
                       showFolderStatus: state.selectedTab == 0,
                       loading: state.status == LibraryStatus.loading,
                       onSelect: (name) => context.read<LibraryBloc>().add(
@@ -211,8 +211,8 @@ class LibraryTopBar extends StatelessWidget {
 
 class CharacterGrid extends StatelessWidget {
   final List<String> characters;
-  final Map<String, int> zipCounts;
-  final Map<String, int> folderCounts;
+  final Map<String, int> archiveCounts;
+  final Map<String, ModFolderStatus> folderStatuses;
   final bool loading;
   final ValueChanged<String> onSelect;
   final String scrollStorageKey;
@@ -220,8 +220,8 @@ class CharacterGrid extends StatelessWidget {
   const CharacterGrid({
     super.key,
     required this.characters,
-    required this.zipCounts,
-    this.folderCounts = const {},
+    required this.archiveCounts,
+    this.folderStatuses = const {},
     required this.loading,
     required this.onSelect,
     this.scrollStorageKey = 'default',
@@ -266,8 +266,8 @@ class CharacterGrid extends StatelessWidget {
             cardWidth,
             cardHeight,
             avatarSize,
-            zipCounts[orderedSkins[index].toLowerCase()] ?? 0,
-            folderCounts[orderedSkins[index].toLowerCase()] ?? 0,
+            archiveCounts[orderedSkins[index].toLowerCase()] ?? 0,
+            folderStatuses[orderedSkins[index].toLowerCase()],
           ),
         );
       },
@@ -279,8 +279,8 @@ class CharacterGrid extends StatelessWidget {
     double width,
     double height,
     double avatarSize,
-    int zipCount,
-    int folderCount,
+    int archiveCount,
+    ModFolderStatus? folderStatus,
   ) => SizedBox(
     width: width,
     height: height,
@@ -305,9 +305,9 @@ class CharacterGrid extends StatelessWidget {
                     size: avatarSize,
                     assetPath: _skinAssetFor(skinName),
                   ),
-                  if (showFolderStatus && folderCount > 0)
-                    _FolderStatusBadge(isValid: folderCount == 1)
-                  else if (!showFolderStatus && zipCount > 0)
+                  if (showFolderStatus && folderStatus != null)
+                    _FolderStatusBadge(status: folderStatus)
+                  else if (!showFolderStatus && archiveCount > 0)
                     Positioned(
                       top: 10,
                       right: 10,
@@ -322,7 +322,7 @@ class CharacterGrid extends StatelessWidget {
                         child: FittedBox(
                           fit: BoxFit.scaleDown,
                           child: Text(
-                            '$zipCount',
+                            '$archiveCount',
                             style: const TextStyle(
                               color: AppColors.surface,
                               fontSize: 12,
@@ -354,18 +354,20 @@ class CharacterGrid extends StatelessWidget {
 }
 
 class _FolderStatusBadge extends StatelessWidget {
-  final bool isValid;
+  final ModFolderStatus status;
 
-  const _FolderStatusBadge({required this.isValid});
+  const _FolderStatusBadge({required this.status});
 
   @override
   Widget build(BuildContext context) => Positioned(
     top: 10,
     right: 10,
     child: Tooltip(
-      message: isValid
-          ? 'Hợp lệ: có 1 thư mục mod'
-          : 'Không hợp lệ: có từ 2 thư mục mod',
+      message: status.isValid
+          ? 'Hợp lệ: có 1 thư mục mod chứa dữ liệu'
+          : status.folderCount == 1
+          ? 'Không hợp lệ: thư mục mod rỗng'
+          : 'Không hợp lệ: có ${status.folderCount} thư mục mod',
       child: Container(
         width: 28,
         height: 28,
@@ -375,9 +377,9 @@ class _FolderStatusBadge extends StatelessWidget {
         ),
         alignment: Alignment.center,
         child: Icon(
-          isValid ? Icons.check : Icons.close,
+          status.isValid ? Icons.check : Icons.close,
           size: 18,
-          color: isValid ? AppColors.success : AppColors.danger,
+          color: status.isValid ? AppColors.success : AppColors.danger,
         ),
       ),
     ),
@@ -576,12 +578,12 @@ class _DetailViewState extends State<DetailView> {
         );
       }
       widget.onRefresh();
-    } on FileSystemException {
+    } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Không thể giải nén ${p.basename(archive.path)}. Hãy kiểm tra file hoặc cài 7-Zip.',
+              'Không thể giải nén ${p.basename(archive.path)}. Hãy kiểm tra file hoặc mật khẩu.',
             ),
           ),
         );

@@ -59,6 +59,7 @@ Invoke-Step 'flutter' @('pub', 'get')
 Invoke-Step 'flutter' @('analyze')
 Invoke-Step 'flutter' @('test')
 Invoke-Step 'flutter' @('build', 'windows', '--release')
+& (Join-Path $repoRoot 'scripts\prepare_7zip.ps1')
 
 $pathIscc = Get-Command ISCC.exe -ErrorAction SilentlyContinue |
     Select-Object -ExpandProperty Source -First 1

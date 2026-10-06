@@ -29,6 +29,8 @@ Nên đặt hai thư mục này bên ngoài thư mục cài đặt ứng dụng 
 - Bấm biểu tượng làm mới sau khi thêm hoặc xóa file bằng File Explorer.
 - Bấm biểu tượng thư mục trong màn hình chi tiết để mở vị trí tương ứng trên máy.
 
+Badge trên tab **Download** cho biết tổng số file ZIP và RAR trong mỗi trang phục. Trên tab **Mods**, dấu xanh cho biết có đúng một thư mục mod chứa dữ liệu; dấu đỏ cho biết thư mục mod rỗng hoặc có nhiều thư mục mod.
+
 ![Thư viện nhân vật](docs/images/library.png)
 
 ## Cài đặt trang phục

@@ -1,3 +1,5 @@
+import '../data/library_repository.dart';
+
 enum LibraryStatus { initial, loading, ready, failure }
 
 class LibraryState {
@@ -5,8 +7,8 @@ class LibraryState {
   final String modsPath;
   final String downloadPath;
   final List<String> characters;
-  final Map<String, int> zipCounts;
-  final Map<String, int> modFolderCounts;
+  final Map<String, int> archiveCounts;
+  final Map<String, ModFolderStatus> modFolderStatuses;
   final int selectedTab;
   final String? selectedCharacter;
   final String? errorMessage;
@@ -16,8 +18,8 @@ class LibraryState {
     this.modsPath = '',
     this.downloadPath = '',
     this.characters = const [],
-    this.zipCounts = const {},
-    this.modFolderCounts = const {},
+    this.archiveCounts = const {},
+    this.modFolderStatuses = const {},
     this.selectedTab = 0,
     this.selectedCharacter,
     this.errorMessage,
@@ -28,8 +30,8 @@ class LibraryState {
     String? modsPath,
     String? downloadPath,
     List<String>? characters,
-    Map<String, int>? zipCounts,
-    Map<String, int>? modFolderCounts,
+    Map<String, int>? archiveCounts,
+    Map<String, ModFolderStatus>? modFolderStatuses,
     int? selectedTab,
     String? selectedCharacter,
     bool clearSelectedCharacter = false,
@@ -39,8 +41,8 @@ class LibraryState {
     modsPath: modsPath ?? this.modsPath,
     downloadPath: downloadPath ?? this.downloadPath,
     characters: characters ?? this.characters,
-    zipCounts: zipCounts ?? this.zipCounts,
-    modFolderCounts: modFolderCounts ?? this.modFolderCounts,
+    archiveCounts: archiveCounts ?? this.archiveCounts,
+    modFolderStatuses: modFolderStatuses ?? this.modFolderStatuses,
     selectedTab: selectedTab ?? this.selectedTab,
     selectedCharacter: clearSelectedCharacter
         ? null

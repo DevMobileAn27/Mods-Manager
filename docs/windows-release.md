@@ -14,7 +14,7 @@ Khóa công khai ở `dsa_pub.pem` được nhúng vào file EXE để xác minh
 
 1. Clone hoặc tải source mới về Windows. Với bản này, version trong `pubspec.yaml` là `1.0.2+3`.
 2. Đặt khóa riêng tại `.local-keys\windows-update\dsa_priv.pem` trên máy Windows. Không commit khóa này.
-3. Cài Flutter Windows desktop, Python, Inno Setup 6 và thêm Flutter/Dart vào `PATH`.
+3. Cài Flutter Windows desktop, Python, Inno Setup 6 và 7-Zip; thêm Flutter/Dart vào `PATH`. Script sẽ đóng gói `7z.exe`, `7z.dll` và giấy phép 7-Zip vào bộ cài để chức năng RAR hoạt động trên máy người dùng.
 4. Chạy PowerShell từ thư mục repo:
 
    ```powershell
