@@ -64,12 +64,20 @@ class LibraryRepository {
     }
   }
 
-  Future<List<String>> scanSkinFolders(
-    String modsPath,
-    String downloadPath,
-  ) async {
+  Future<List<String>> scanSkinFolders(String modsPath, String downloadPath) =>
+      _scanSkinFolders([modsPath, downloadPath]);
+
+  /// Scans only the root shown by the active library tab.
+  ///
+  /// The two-root scan above is kept for migration/tests, while the UI uses
+  /// this method so a folder that exists only in Download cannot remain
+  /// visible in the Mods tab (or vice versa).
+  Future<List<String>> scanSkinFoldersAt(String rootPath) =>
+      _scanSkinFolders([rootPath]);
+
+  Future<List<String>> _scanSkinFolders(List<String> rootPaths) async {
     final names = <String, String>{};
-    for (final rootPath in [modsPath, downloadPath]) {
+    for (final rootPath in rootPaths) {
       try {
         final root = Directory(rootPath);
         if (!await root.exists()) continue;

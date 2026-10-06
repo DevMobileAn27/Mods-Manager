@@ -1,6 +1,7 @@
 """Create the WinSparkle feed for a signed GitHub Release installer."""
 
 import argparse
+import re
 from datetime import datetime, timezone
 from email.utils import format_datetime
 from pathlib import Path
@@ -20,6 +21,14 @@ def main() -> None:
     parser.add_argument("--installer", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
     args = parser.parse_args()
+
+    if not re.fullmatch(r"\d+\.\d+\.\d+\+\d+", args.version):
+        parser.error("--version must use MAJOR.MINOR.PATCH+BUILD")
+    expected_tag = f"v{args.version}"
+    if args.tag != expected_tag:
+        parser.error(f"--tag must match --version exactly: {expected_tag}")
+    if not args.installer.is_file():
+        parser.error(f"installer does not exist: {args.installer}")
 
     rss = ET.Element("rss", version="2.0")
     channel = ET.SubElement(rss, "channel")

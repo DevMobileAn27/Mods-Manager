@@ -70,6 +70,20 @@ void main() {
     }
   });
 
+  test('scans each library tab from its own root', () async {
+    await Directory(p.join(modsPath, 'Mods only')).create(recursive: true);
+    await File(p.join(modsPath, 'Mods only', 'mod.ini')).writeAsString('data');
+    await Directory(
+      p.join(downloadPath, 'Download only'),
+    ).create(recursive: true);
+    await File(
+      p.join(downloadPath, 'Download only', 'skin.zip'),
+    ).writeAsString('data');
+
+    expect(await repository.scanSkinFoldersAt(modsPath), ['Mods only']);
+    expect(await repository.scanSkinFoldersAt(downloadPath), ['Download only']);
+  });
+
   test('hides empty old root folders without deleting them', () async {
     final oldModsFolder = Directory(p.join(modsPath, 'active sport skin'));
     final oldDownloadFolder = Directory(
@@ -89,10 +103,10 @@ void main() {
     ]);
     expect(await oldModsFolder.exists(), isTrue);
     expect(await oldDownloadFolder.exists(), isTrue);
-      expect(
-        await Directory(p.join(downloadPath, 'active sport skin')).exists(),
-        isFalse,
-      );
+    expect(
+      await Directory(p.join(downloadPath, 'active sport skin')).exists(),
+      isFalse,
+    );
     expect(
       await Directory(
         p.join(modsPath, 'alice__bottom_heavy_nsfw__eea05'),
@@ -127,15 +141,23 @@ void main() {
     await File(p.join(oldFolder.path, 'mod.ini')).writeAsString('data');
 
     await repository.ensureCharacterFolders(modsPath, downloadPath);
-    expect(await Directory(p.join(downloadPath, 'active sport skin')).exists(),
-        isFalse);
+    expect(
+      await Directory(p.join(downloadPath, 'active sport skin')).exists(),
+      isFalse,
+    );
 
     await oldFolder.delete(recursive: true);
     await repository.ensureCharacterFolders(modsPath, downloadPath);
 
     expect(await oldFolder.exists(), isFalse);
-    expect(await Directory(p.join(downloadPath, 'active sport skin')).exists(),
-        isFalse);
+    expect(
+      await Directory(p.join(downloadPath, 'active sport skin')).exists(),
+      isFalse,
+    );
+    expect(
+      await repository.scanSkinFoldersAt(modsPath),
+      isNot(contains('active sport skin')),
+    );
   });
 
   test('installs A.zip into the skin folder that contains it', () async {
