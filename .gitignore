@@ -32,6 +32,9 @@ migrate_working_dir/
 .pub/
 /build/
 /dist/
+/linux/flutter/ephemeral/
+/macos/Flutter/ephemeral/
+/windows/flutter/ephemeral/
 /coverage/
 /.local-keys/
 /.codegraph/

@@ -17,7 +17,7 @@ Không đưa khóa riêng vào Git hoặc thư mục phát hành công khai.
 Mở PowerShell trong thư mục repository:
 
 ```powershell
-cd "C:\Users\ASUS_ROG\Documents\Github\visual-mods-manager"
+cd (Join-Path $HOME 'Documents\Github\visual-mods-manager')
 ```
 
 Kiểm tra version trong `pubspec.yaml`:
@@ -33,8 +33,8 @@ Tag GitHub tương ứng phải là `v1.0.2+3`.
 Nếu Flutter, Dart, Inno Setup và OpenSSL đã có trong `PATH`:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\build_windows_release.ps1 `
-  -PrivateKeyPath "C:\Users\ASUS_ROG\Documents\dsa_priv.pem"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\build_windows_release.ps1 `
+  -PrivateKeyPath (Join-Path $HOME 'Documents\dsa_priv.pem')
 ```
 
 Script sẽ tự động:
@@ -50,14 +50,12 @@ Script sẽ tự động:
 ## Nếu công cụ nằm trong thư mục `.tools`
 
 ```powershell
+$toolsRoot = Join-Path $HOME 'Documents\visual-mods-manager-main\.tools'
 $env:PATH = `
-  "C:\Users\ASUS_ROG\Documents\visual-mods-manager-main\.tools\flutter\bin;" + `
-  "C:\Users\ASUS_ROG\Documents\visual-mods-manager-main\.tools\flutter\bin\cache\dart-sdk\bin;" + `
-  "C:\Users\ASUS_ROG\Documents\visual-mods-manager-main\.tools\innosetup;" + `
-  "C:\Users\ASUS_ROG\Documents\visual-mods-manager-main\.tools\openssl\bin;" + $env:PATH
+  "$(Join-Path $toolsRoot 'flutter\bin');$(Join-Path $toolsRoot 'flutter\bin\cache\dart-sdk\bin');$(Join-Path $toolsRoot 'flutter\bin\mingit\cmd');$(Join-Path $toolsRoot 'innosetup');$(Join-Path $toolsRoot 'openssl\bin');$env:PATH"
 
-powershell -ExecutionPolicy Bypass -File .\scripts\build_windows_release.ps1 `
-  -PrivateKeyPath "C:\Users\ASUS_ROG\Documents\dsa_priv.pem"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\build_windows_release.ps1 `
+  -PrivateKeyPath (Join-Path $HOME 'Documents\dsa_priv.pem')
 ```
 
 ## File đầu ra
