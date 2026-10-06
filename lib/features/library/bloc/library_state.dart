@@ -6,6 +6,7 @@ class LibraryState {
   final String downloadPath;
   final List<String> characters;
   final Map<String, int> zipCounts;
+  final Map<String, int> modFolderCounts;
   final int selectedTab;
   final String? selectedCharacter;
   final String? errorMessage;
@@ -16,6 +17,7 @@ class LibraryState {
     this.downloadPath = '',
     this.characters = const [],
     this.zipCounts = const {},
+    this.modFolderCounts = const {},
     this.selectedTab = 0,
     this.selectedCharacter,
     this.errorMessage,
@@ -27,6 +29,7 @@ class LibraryState {
     String? downloadPath,
     List<String>? characters,
     Map<String, int>? zipCounts,
+    Map<String, int>? modFolderCounts,
     int? selectedTab,
     String? selectedCharacter,
     bool clearSelectedCharacter = false,
@@ -37,6 +40,7 @@ class LibraryState {
     downloadPath: downloadPath ?? this.downloadPath,
     characters: characters ?? this.characters,
     zipCounts: zipCounts ?? this.zipCounts,
+    modFolderCounts: modFolderCounts ?? this.modFolderCounts,
     selectedTab: selectedTab ?? this.selectedTab,
     selectedCharacter: clearSelectedCharacter
         ? null

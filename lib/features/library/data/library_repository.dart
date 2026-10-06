@@ -125,6 +125,34 @@ class LibraryRepository {
     return counts;
   }
 
+  Future<Map<String, int>> scanChildFolderCounts(String rootPath) async {
+    final counts = <String, int>{};
+    final root = Directory(rootPath);
+    if (!await root.exists()) return counts;
+    try {
+      await for (final entity in root.list(followLinks: false)) {
+        if (entity is! Directory) continue;
+        var count = 0;
+        await for (final child in entity.list(followLinks: false)) {
+          if (child is! Directory) continue;
+          final name = p.basename(child.path).toLowerCase();
+          if (name.startsWith('.') ||
+              name == 'thumbs.db' ||
+              name == 'desktop.ini') {
+            continue;
+          }
+          count++;
+        }
+        if (count > 0) {
+          counts[p.basename(entity.path).toLowerCase()] = count;
+        }
+      }
+    } catch (_) {
+      // A folder that cannot be read should not block the rest of the grid.
+    }
+    return counts;
+  }
+
   Future<Directory> skinDirectory(String rootPath, String skinName) async {
     final root = Directory(rootPath);
     if (await root.exists()) {
@@ -138,9 +166,20 @@ class LibraryRepository {
     return Directory(p.join(rootPath, skinName));
   }
 
-  Future<String> installZip(File zip, String modsPath, String skinName) async {
+  Future<String> installZip(File zip, String modsPath, String skinName) =>
+      installArchive(zip, modsPath, skinName);
+
+  Future<String> installArchive(
+    File archiveFile,
+    String modsPath,
+    String skinName,
+  ) async {
+    final extension = p.extension(archiveFile.path).toLowerCase();
+    if (extension != '.zip' && extension != '.rar') {
+      throw UnsupportedError('Chỉ hỗ trợ file ZIP và RAR.');
+    }
+
     final dest = await skinDirectory(modsPath, skinName);
-    final archive = ZipDecoder().decodeBytes(await zip.readAsBytes());
     final folderName = _datedInstallFolderName(skinName, DateTime.now());
     final stagingRoot = await Directory.systemTemp.createTemp(
       'visual-mods-install-',
@@ -148,6 +187,31 @@ class LibraryRepository {
     final staging = Directory(p.join(stagingRoot.path, folderName));
     await staging.create(recursive: true);
 
+    try {
+      if (extension == '.zip') {
+        final archive = ZipDecoder().decodeBytes(
+          await archiveFile.readAsBytes(),
+        );
+        await _stageZipArchive(archive, staging);
+      } else {
+        final extracted = Directory(p.join(stagingRoot.path, 'rar'));
+        await extracted.create();
+        await _extractRarArchive(archiveFile, extracted);
+        await _stageExtractedArchive(extracted, staging);
+      }
+
+      await dest.create(recursive: true);
+      final target = await _nextAvailableDirectory(dest, folderName);
+      await _moveDirectory(staging, target);
+      return p.basename(target.path);
+    } finally {
+      if (await stagingRoot.exists()) {
+        await stagingRoot.delete(recursive: true);
+      }
+    }
+  }
+
+  Future<void> _stageZipArchive(Archive archive, Directory staging) async {
     final entries = archive.toList();
     final firstSegments = <String>{};
     var canStripRoot = true;
@@ -165,40 +229,106 @@ class LibraryRepository {
         ? firstSegments.first
         : null;
 
-    try {
-      for (final entry in entries) {
-        var relative = entry.name.replaceAll('\\', '/');
-        if (commonRoot != null && relative.startsWith('$commonRoot/')) {
-          relative = relative.substring(commonRoot.length + 1);
-        }
-        relative = p.normalize(relative);
-        if (relative.isEmpty ||
-            relative == '.' ||
-            p.isAbsolute(relative) ||
-            relative == '..' ||
-            relative.startsWith('../')) {
-          continue;
-        }
-        final out = p.join(staging.path, relative);
-        if (!p.isWithin(staging.path, out)) continue;
-        if (entry.isFile) {
-          final file = File(out);
-          await file.parent.create(recursive: true);
-          await file.writeAsBytes(entry.content);
-        } else {
-          await Directory(out).create(recursive: true);
-        }
+    for (final entry in entries) {
+      var relative = entry.name.replaceAll('\\', '/');
+      if (commonRoot != null && relative.startsWith('$commonRoot/')) {
+        relative = relative.substring(commonRoot.length + 1);
       }
-
-      await dest.create(recursive: true);
-      final target = await _nextAvailableDirectory(dest, folderName);
-      await _moveDirectory(staging, target);
-      return p.basename(target.path);
-    } finally {
-      if (await stagingRoot.exists()) {
-        await stagingRoot.delete(recursive: true);
+      relative = p.normalize(relative);
+      if (!_isSafeArchivePath(relative)) continue;
+      final out = p.join(staging.path, relative);
+      if (!p.isWithin(staging.path, out)) continue;
+      if (entry.isFile) {
+        final file = File(out);
+        await file.parent.create(recursive: true);
+        await file.writeAsBytes(entry.content);
+      } else {
+        await Directory(out).create(recursive: true);
       }
     }
+  }
+
+  Future<void> _stageExtractedArchive(
+    Directory extracted,
+    Directory staging,
+  ) async {
+    final entries = await extracted
+        .list(recursive: true, followLinks: false)
+        .toList();
+    final relativePaths = <FileSystemEntity, String>{};
+    final firstSegments = <String>{};
+    var canStripRoot = true;
+
+    for (final entry in entries) {
+      if (entry is! File && entry is! Directory) continue;
+      final relative = p
+          .relative(entry.path, from: extracted.path)
+          .replaceAll('\\', '/');
+      final parts = relative
+          .split('/')
+          .where((part) => part.isNotEmpty)
+          .toList();
+      if (parts.isEmpty) continue;
+      relativePaths[entry] = relative;
+      firstSegments.add(parts.first);
+      if (parts.length < 2 && entry is File) canStripRoot = false;
+    }
+
+    final commonRoot = canStripRoot && firstSegments.length == 1
+        ? firstSegments.first
+        : null;
+    for (final entry in entries) {
+      final original = relativePaths[entry];
+      if (original == null) continue;
+      var relative = original;
+      if (commonRoot != null && relative.startsWith('$commonRoot/')) {
+        relative = relative.substring(commonRoot.length + 1);
+      }
+      relative = p.normalize(relative);
+      if (!_isSafeArchivePath(relative)) continue;
+      final out = p.join(staging.path, relative);
+      if (!p.isWithin(staging.path, out)) continue;
+      if (entry is Directory) {
+        await Directory(out).create(recursive: true);
+      } else if (entry is File) {
+        await entry.copy(out);
+      }
+    }
+  }
+
+  bool _isSafeArchivePath(String path) =>
+      path.isNotEmpty &&
+      path != '.' &&
+      !p.isAbsolute(path) &&
+      path != '..' &&
+      !path.startsWith('../');
+
+  Future<void> _extractRarArchive(File archiveFile, Directory output) async {
+    final outputPath = output.path;
+    final commands = <(String, List<String>)>[
+      ('tar.exe', ['-xf', archiveFile.path, '-C', outputPath]),
+      ('7z.exe', ['x', archiveFile.path, '-o$outputPath', '-y']),
+      ('7za.exe', ['x', archiveFile.path, '-o$outputPath', '-y']),
+      ('UnRAR.exe', ['x', '-o+', archiveFile.path, outputPath]),
+    ];
+    final errors = <String>[];
+    for (final command in commands) {
+      try {
+        final result = await Process.run(command.$1, command.$2);
+        if (result.exitCode == 0) return;
+        final details = result.stderr.toString().trim();
+        errors.add(
+          '${command.$1} exited with ${result.exitCode}${details.isEmpty ? '' : ': $details'}',
+        );
+      } on ProcessException catch (error) {
+        errors.add('${command.$1}: ${error.message}');
+      }
+    }
+    throw FileSystemException(
+      'Không thể giải nén file RAR. Hãy cập nhật Windows hoặc cài 7-Zip.\n'
+      '${errors.join('\n')}',
+      archiveFile.path,
+    );
   }
 
   String _datedInstallFolderName(String skinName, DateTime date) {

@@ -49,12 +49,14 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
         selectedTab: event.index,
         clearSelectedCharacter: true,
         zipCounts: const {},
+        modFolderCounts: const {},
       ),
     );
     final rootPath = event.index == 0 ? state.modsPath : state.downloadPath;
     final counts = await repository.scanZipCounts(rootPath);
+    final modFolderCounts = await repository.scanChildFolderCounts(rootPath);
     if (state.selectedTab == event.index) {
-      emit(state.copyWith(zipCounts: counts));
+      emit(state.copyWith(zipCounts: counts, modFolderCounts: modFolderCounts));
     }
   }
 
@@ -68,11 +70,13 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
           : state.downloadPath;
       final characters = await repository.scanSkinFoldersAt(rootPath);
       final zipCounts = await repository.scanZipCounts(rootPath);
+      final modFolderCounts = await repository.scanChildFolderCounts(rootPath);
       emit(
         state.copyWith(
           status: LibraryStatus.ready,
           characters: characters,
           zipCounts: zipCounts,
+          modFolderCounts: modFolderCounts,
         ),
       );
     } catch (error) {
@@ -81,11 +85,13 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
           : state.downloadPath;
       final characters = await repository.scanSkinFoldersAt(rootPath);
       final zipCounts = await repository.scanZipCounts(rootPath);
+      final modFolderCounts = await repository.scanChildFolderCounts(rootPath);
       emit(
         state.copyWith(
           status: LibraryStatus.ready,
           characters: characters,
           zipCounts: zipCounts,
+          modFolderCounts: modFolderCounts,
           errorMessage: error.toString(),
         ),
       );

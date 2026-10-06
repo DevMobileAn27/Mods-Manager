@@ -84,6 +84,27 @@ void main() {
     expect(await repository.scanSkinFoldersAt(downloadPath), ['Download only']);
   });
 
+  test('counts visible child folders inside each skin folder', () async {
+    await Directory(
+      p.join(modsPath, 'A (default)', 'installed-one'),
+    ).create(recursive: true);
+    await Directory(
+      p.join(modsPath, 'A - Extra', 'installed-one'),
+    ).create(recursive: true);
+    await Directory(
+      p.join(modsPath, 'A - Extra', 'installed-two'),
+    ).create(recursive: true);
+    await Directory(
+      p.join(modsPath, 'A - Extra', '.hidden'),
+    ).create(recursive: true);
+    await Directory(p.join(modsPath, 'A - Empty')).create(recursive: true);
+
+    expect(await repository.scanChildFolderCounts(modsPath), {
+      'a (default)': 1,
+      'a - extra': 2,
+    });
+  });
+
   test('hides empty old root folders without deleting them', () async {
     final oldModsFolder = Directory(p.join(modsPath, 'active sport skin'));
     final oldDownloadFolder = Directory(

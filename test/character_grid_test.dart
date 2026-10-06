@@ -45,6 +45,82 @@ void main() {
     await mouse.removePointer();
   });
 
+  testWidgets('restores scroll position after opening and closing details', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(800, 632);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    var showGrid = true;
+    late StateSetter rebuild;
+    final characters = [for (var i = 0; i < 30; i++) 'Character $i (default)'];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: StatefulBuilder(
+            builder: (context, setState) {
+              rebuild = setState;
+              return showGrid
+                  ? CharacterGrid(
+                      characters: characters,
+                      zipCounts: const {},
+                      loading: false,
+                      onSelect: (_) {},
+                    )
+                  : const SizedBox.shrink();
+            },
+          ),
+        ),
+      ),
+    );
+
+    final before = tester.state<ScrollableState>(find.byType(Scrollable));
+    before.position.jumpTo(300);
+    await tester.pump();
+
+    rebuild(() => showGrid = false);
+    await tester.pump();
+    rebuild(() => showGrid = true);
+    await tester.pumpAndSettle();
+
+    final after = tester.state<ScrollableState>(find.byType(Scrollable));
+    expect(after.position.pixels, 300);
+  });
+
+  testWidgets('shows mod folder status badges for one or multiple folders', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(800, 632);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: CharacterGrid(
+            characters: const ['A (default)', 'B (default)', 'C (default)'],
+            zipCounts: const {},
+            folderCounts: const {
+              'a (default)': 1,
+              'b (default)': 2,
+              'c (default)': 0,
+            },
+            showFolderStatus: true,
+            loading: false,
+            onSelect: (_) {},
+          ),
+        ),
+      ),
+    );
+
+    expect(find.byIcon(Icons.check), findsOneWidget);
+    expect(find.byIcon(Icons.close), findsOneWidget);
+  });
+
   testWidgets('keeps a skin immediately after its character across rows', (
     tester,
   ) async {
