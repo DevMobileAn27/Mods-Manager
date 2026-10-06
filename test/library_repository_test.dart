@@ -84,6 +84,49 @@ void main() {
     expect(await repository.scanSkinFoldersAt(downloadPath), ['Download only']);
   });
 
+  test('counts ZIP and RAR files in Download', () async {
+    final skin = Directory(p.join(downloadPath, 'A (default)'));
+    await skin.create(recursive: true);
+    await File(p.join(skin.path, 'one.zip')).writeAsString('zip');
+    await File(p.join(skin.path, 'two.RAR')).writeAsString('rar');
+    await File(p.join(skin.path, '.hidden.rar')).writeAsString('hidden');
+
+    expect(await repository.scanArchiveCounts(downloadPath), {
+      'a (default)': 2,
+    });
+  });
+
+  test(
+    'marks one populated mod folder valid and empty folders invalid',
+    () async {
+      await Directory(
+        p.join(modsPath, 'A (default)', 'installed-one'),
+      ).create(recursive: true);
+      await Directory(
+        p.join(modsPath, 'A - Extra', 'installed-one'),
+      ).create(recursive: true);
+      await Directory(
+        p.join(modsPath, 'A - Extra', 'installed-two'),
+      ).create(recursive: true);
+      await Directory(
+        p.join(modsPath, 'A - Extra', '.hidden'),
+      ).create(recursive: true);
+      await Directory(p.join(modsPath, 'A - Empty')).create(recursive: true);
+      await Directory(p.join(modsPath, 'A - Empty', 'empty')).create();
+      await File(
+        p.join(modsPath, 'A (default)', 'installed-one', 'mod.ini'),
+      ).writeAsString('data');
+
+      final statuses = await repository.scanModFolderStatuses(modsPath);
+      expect(statuses['a (default)']!.folderCount, 1);
+      expect(statuses['a (default)']!.isValid, isTrue);
+      expect(statuses['a - extra']!.folderCount, 2);
+      expect(statuses['a - extra']!.isValid, isFalse);
+      expect(statuses['a - empty']!.folderCount, 1);
+      expect(statuses['a - empty']!.isValid, isFalse);
+    },
+  );
+
   test('hides empty old root folders without deleting them', () async {
     final oldModsFolder = Directory(p.join(modsPath, 'active sport skin'));
     final oldDownloadFolder = Directory(
@@ -166,6 +209,7 @@ void main() {
     final zip = File(p.join(zipDir.path, 'A.zip'));
     final contents = utf8.encode('skin data');
     final archive = Archive()
+      ..addFile(ArchiveFile.directory('pack/'))
       ..addFile(ArchiveFile('pack/config.ini', contents.length, contents));
     await zip.writeAsBytes(ZipEncoder().encode(archive));
 
@@ -182,11 +226,66 @@ void main() {
       ).readAsString(),
       'skin data',
     );
+    expect(
+      await Directory(
+        p.join(modsPath, 'A - ABC', installedFolder, 'pack'),
+      ).exists(),
+      isFalse,
+    );
     expect(installedFolder, matches(RegExp(r'^A_\d{2}_\d{2}_\d{2}(?:_\d+)?$')));
     expect(
       await File(p.join(modsPath, 'A (default)', 'config.ini')).exists(),
       isFalse,
     );
+  });
+
+  test('RAR installation removes only the wrapper directory', () async {
+    final archive = File(p.join(downloadPath, 'A.rar'));
+    await archive.parent.create(recursive: true);
+    await archive.writeAsString('fixture supplied by extractor');
+    final rarRepository = LibraryRepository(
+      characterCatalog: const ['A'],
+      rarExtractor: (_, output) async {
+        final mod = Directory(p.join(output.path, 'wrapper', 'ModFolder'));
+        await mod.create(recursive: true);
+        await File(p.join(mod.path, 'mod.ini')).writeAsString('rar skin');
+      },
+    );
+
+    final installedFolder = await rarRepository.installArchive(
+      archive,
+      modsPath,
+      'A (default)',
+    );
+    final installed = Directory(
+      p.join(modsPath, 'A (default)', installedFolder),
+    );
+    expect(
+      await File(p.join(installed.path, 'ModFolder', 'mod.ini')).readAsString(),
+      'rar skin',
+    );
+    expect(
+      await Directory(p.join(installed.path, 'wrapper')).exists(),
+      isFalse,
+    );
+  });
+
+  test('rejects an archive that extracts no visible files', () async {
+    final archive = File(p.join(downloadPath, 'empty.rar'));
+    await archive.parent.create(recursive: true);
+    await archive.writeAsString('fixture supplied by extractor');
+    final rarRepository = LibraryRepository(
+      characterCatalog: const ['A'],
+      rarExtractor: (_, output) async {
+        await Directory(p.join(output.path, 'wrapper')).create();
+      },
+    );
+
+    await expectLater(
+      rarRepository.installArchive(archive, modsPath, 'A (default)'),
+      throwsA(isA<FileSystemException>()),
+    );
+    expect(await Directory(p.join(modsPath, 'A (default)')).exists(), isFalse);
   });
 
   test('migrates folders and ZIPs from the old character layout', () async {
@@ -209,8 +308,13 @@ void main() {
       await File(p.join(downloadPath, 'A - ABC', 'A - Skin ABC.zip')).exists(),
       isTrue,
     );
-    expect(await Directory(p.join(modsPath, 'A')).exists(), isFalse);
-    expect(await Directory(p.join(downloadPath, 'A')).exists(), isFalse);
+    expect(await Directory(p.join(modsPath, 'A')).exists(), isTrue);
+    expect(await Directory(p.join(downloadPath, 'A')).exists(), isTrue);
+    expect(
+      await Directory(p.join(modsPath, 'A', 'A - Skin ABC')).list().isEmpty,
+      isTrue,
+    );
+    expect(await Directory(p.join(downloadPath, 'A')).list().isEmpty, isTrue);
   });
 
   test('renames root skin folders without losing their files', () async {
@@ -220,11 +324,32 @@ void main() {
 
     await repository.ensureCharacterFolders(modsPath, downloadPath);
 
-    expect(await oldFolder.exists(), isFalse);
+    expect(await oldFolder.exists(), isTrue);
+    expect(await oldFolder.list().isEmpty, isTrue);
     expect(
       await File(p.join(downloadPath, 'A - ABC', 'A.zip')).readAsString(),
       'download',
     );
     expect(await Directory(p.join(modsPath, 'A - ABC')).exists(), isTrue);
   });
+
+  test(
+    'migrates any legacy folder whose name contains the character',
+    () async {
+      final oldFolder = Directory(p.join(modsPath, 'A legacy mods'));
+      await oldFolder.create(recursive: true);
+      await File(p.join(oldFolder.path, 'config.ini')).writeAsString('legacy');
+
+      await repository.ensureCharacterFolders(modsPath, downloadPath);
+
+      expect(
+        await File(
+          p.join(modsPath, 'A (default)', 'config.ini'),
+        ).readAsString(),
+        'legacy',
+      );
+      expect(await oldFolder.exists(), isTrue);
+      expect(await oldFolder.list().isEmpty, isTrue);
+    },
+  );
 }

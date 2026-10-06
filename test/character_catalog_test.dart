@@ -1,10 +1,13 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:xxmi_manager/core/character_catalog.dart';
 
 void main() {
-  test('contains all 60 playable agents in the current catalog', () {
-    expect(zzzCharacterFolders, hasLength(60));
+  test('contains the current agents and both protagonists', () {
+    expect(zzzCharacterFolders, hasLength(62));
     expect(zzzCharacterFolders, contains('Promeia'));
+    expect(zzzCharacterFolders, containsAll(['Belle', 'Wise']));
   });
 
   test('stores an attribute for every character folder', () {
@@ -28,7 +31,13 @@ void main() {
         allSkins.add('${entry.key} - $outfit');
       }
     }
-    expect(allSkins, hasLength(23));
+    expect(allSkins, hasLength(29));
     expect(zzzSkinAvatarAssets.keys.toSet(), allSkins);
+    for (final asset in zzzSkinAvatarAssets.values) {
+      expect(File(asset).existsSync(), isTrue, reason: asset);
+    }
+    for (final asset in zzzAvatarAssets.values) {
+      expect(File(asset).existsSync(), isTrue, reason: asset);
+    }
   });
 }

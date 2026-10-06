@@ -70,12 +70,14 @@ class _LibraryShellState extends State<_LibraryShell> {
             Expanded(
               child: state.selectedCharacter == null
                   ? CharacterGrid(
-                      // A new grid element per tab gives each tab a fresh
-                      // scroll position, so switching tabs always starts at
-                      // the beginning of its character list.
+                      // Keep a separate scroll position for each library tab
+                      // when the grid is temporarily replaced by DetailView.
                       key: ValueKey(state.selectedTab),
+                      scrollStorageKey: 'library-tab-${state.selectedTab}',
                       characters: visibleCharacters,
-                      zipCounts: state.zipCounts,
+                      archiveCounts: state.archiveCounts,
+                      folderStatuses: state.modFolderStatuses,
+                      showFolderStatus: state.selectedTab == 0,
                       loading: state.status == LibraryStatus.loading,
                       onSelect: (name) => context.read<LibraryBloc>().add(
                         LibraryCharacterOpened(name),
@@ -209,15 +211,21 @@ class LibraryTopBar extends StatelessWidget {
 
 class CharacterGrid extends StatelessWidget {
   final List<String> characters;
-  final Map<String, int> zipCounts;
+  final Map<String, int> archiveCounts;
+  final Map<String, ModFolderStatus> folderStatuses;
   final bool loading;
   final ValueChanged<String> onSelect;
+  final String scrollStorageKey;
+  final bool showFolderStatus;
   const CharacterGrid({
     super.key,
     required this.characters,
-    required this.zipCounts,
+    required this.archiveCounts,
+    this.folderStatuses = const {},
     required this.loading,
     required this.onSelect,
+    this.scrollStorageKey = 'default',
+    this.showFolderStatus = false,
   });
 
   @override
@@ -244,6 +252,7 @@ class CharacterGrid extends StatelessWidget {
         }
         final orderedSkins = groups.values.expand((skins) => skins).toList();
         return GridView.builder(
+          key: PageStorageKey<String>('character-grid-$scrollStorageKey'),
           padding: const EdgeInsets.fromLTRB(28, 24, 28, 28),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: count,
@@ -257,7 +266,8 @@ class CharacterGrid extends StatelessWidget {
             cardWidth,
             cardHeight,
             avatarSize,
-            zipCounts[orderedSkins[index].toLowerCase()] ?? 0,
+            archiveCounts[orderedSkins[index].toLowerCase()] ?? 0,
+            folderStatuses[orderedSkins[index].toLowerCase()],
           ),
         );
       },
@@ -269,7 +279,8 @@ class CharacterGrid extends StatelessWidget {
     double width,
     double height,
     double avatarSize,
-    int zipCount,
+    int archiveCount,
+    ModFolderStatus? folderStatus,
   ) => SizedBox(
     width: width,
     height: height,
@@ -294,7 +305,9 @@ class CharacterGrid extends StatelessWidget {
                     size: avatarSize,
                     assetPath: _skinAssetFor(skinName),
                   ),
-                  if (zipCount > 0)
+                  if (showFolderStatus && folderStatus != null)
+                    _FolderStatusBadge(status: folderStatus)
+                  else if (!showFolderStatus && archiveCount > 0)
                     Positioned(
                       top: 10,
                       right: 10,
@@ -309,7 +322,7 @@ class CharacterGrid extends StatelessWidget {
                         child: FittedBox(
                           fit: BoxFit.scaleDown,
                           child: Text(
-                            '$zipCount',
+                            '$archiveCount',
                             style: const TextStyle(
                               color: AppColors.surface,
                               fontSize: 12,
@@ -334,6 +347,39 @@ class CharacterGrid extends StatelessWidget {
               ),
             ],
           ),
+        ),
+      ),
+    ),
+  );
+}
+
+class _FolderStatusBadge extends StatelessWidget {
+  final ModFolderStatus status;
+
+  const _FolderStatusBadge({required this.status});
+
+  @override
+  Widget build(BuildContext context) => Positioned(
+    top: 10,
+    right: 10,
+    child: Tooltip(
+      message: status.isValid
+          ? 'Hợp lệ: có 1 thư mục mod chứa dữ liệu'
+          : status.folderCount == 1
+          ? 'Không hợp lệ: thư mục mod rỗng'
+          : 'Không hợp lệ: có ${status.folderCount} thư mục mod',
+      child: Container(
+        width: 28,
+        height: 28,
+        decoration: const BoxDecoration(
+          color: Color.fromRGBO(0, 0, 0, 0.5),
+          shape: BoxShape.circle,
+        ),
+        alignment: Alignment.center,
+        child: Icon(
+          status.isValid ? Icons.check : Icons.close,
+          size: 18,
+          color: status.isValid ? AppColors.success : AppColors.danger,
         ),
       ),
     ),
@@ -395,6 +441,7 @@ class HeroAvatar extends StatelessWidget {
 }
 
 Color? _attributeBackground(ZzzAttribute? attribute) => switch (attribute) {
+  ZzzAttribute.none => const Color(0xffd7dce3),
   ZzzAttribute.physical => const Color(0xffe9c77b),
   ZzzAttribute.fire => const Color(0xfff2a36f),
   ZzzAttribute.ice => const Color(0xff9cd9ea),
@@ -516,21 +563,33 @@ class _DetailViewState extends State<DetailView> {
     widget.onRefresh();
   }
 
-  Future<void> useZip(File zip) async {
-    final installedFolder = await context
-        .read<LibraryBloc>()
-        .repository
-        .installZip(zip, widget.modsRoot, widget.skinName);
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Đã cài skin vào Mods/${widget.skinName}/$installedFolder',
+  Future<void> useArchive(File archive) async {
+    try {
+      final installedFolder = await context
+          .read<LibraryBloc>()
+          .repository
+          .installArchive(archive, widget.modsRoot, widget.skinName);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Đã cài skin vào Mods/${widget.skinName}/$installedFolder',
+            ),
           ),
-        ),
-      );
+        );
+      }
+      widget.onRefresh();
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Không thể giải nén ${p.basename(archive.path)}. Hãy kiểm tra file hoặc mật khẩu.',
+            ),
+          ),
+        );
+      }
     }
-    widget.onRefresh();
   }
 
   Future<void> openFolder() async {
@@ -570,16 +629,16 @@ class _DetailViewState extends State<DetailView> {
   }
 
   void menu(Offset pos, FileSystemEntity e) async {
-    final isZip =
+    final isArchive =
         widget.isDownload &&
         e is File &&
-        p.extension(e.path).toLowerCase() == '.zip';
+        {'.zip', '.rar'}.contains(p.extension(e.path).toLowerCase());
     final action = await showMenu<String>(
       context: context,
       position: RelativeRect.fromLTRB(pos.dx, pos.dy, pos.dx + 1, pos.dy + 1),
       menuPadding: EdgeInsets.zero,
       items: [
-        if (isZip)
+        if (isArchive)
           const PopupMenuItem(
             value: 'use',
             child: ListTile(
@@ -602,7 +661,7 @@ class _DetailViewState extends State<DetailView> {
       ],
     );
     if (action == 'delete') delete(e);
-    if (action == 'use') useZip(e as File);
+    if (action == 'use') useArchive(e as File);
   }
 
   @override
@@ -680,11 +739,12 @@ class FileEntryGrid extends StatelessWidget {
     itemBuilder: (context, index) {
       final entry = entries[index];
       final isDirectory = entry is Directory;
-      final isZip =
-          !isDirectory && p.extension(entry.path).toLowerCase() == '.zip';
+      final isArchive =
+          !isDirectory &&
+          {'.zip', '.rar'}.contains(p.extension(entry.path).toLowerCase());
       final icon = isDirectory
           ? Icons.folder_outlined
-          : isZip
+          : isArchive
           ? Icons.archive_outlined
           : Icons.insert_drive_file_outlined;
       final color = isDirectory ? AppColors.archive : AppColors.primary;

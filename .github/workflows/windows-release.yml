@@ -45,12 +45,13 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'flutter build windows failed' }
       - name: Install packaging tools
         shell: pwsh
-        run: choco install innosetup openssl.light -y --no-progress
+        run: choco install innosetup openssl.light 7zip -y --no-progress
       - name: Package installer
         shell: pwsh
         run: |
           if ($env:APP_VERSION -notmatch '^(\d+)\.(\d+)\.(\d+)\+(\d+)$') { throw 'Use numeric version MAJOR.MINOR.PATCH+BUILD in pubspec.yaml' }
           $windowsVersion = "$($Matches[1]).$($Matches[2]).$($Matches[3]).$($Matches[4])"
+          & .\scripts\prepare_7zip.ps1
           & 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe' "/DAppVersion=$env:APP_VERSION" "/DWindowsVersion=$windowsVersion" windows\installer\XXMI-Manager.iss
           if ($LASTEXITCODE -ne 0) { throw 'Inno Setup failed' }
       - name: Sign installer and create appcast

@@ -5,6 +5,7 @@ String titleCaseFolder(String value) => value
     .join(' ');
 
 enum ZzzAttribute {
+  none,
   physical,
   fire,
   ice,
@@ -37,6 +38,7 @@ const zzzCharacterCatalog = <String, ZzzCharacterInfo>{
   'Astra Yao': ZzzCharacterInfo('Astra Yao', ZzzAttribute.ether),
   'Asaba Harumasa': ZzzCharacterInfo('Asaba Harumasa', ZzzAttribute.electric),
   'Banyue': ZzzCharacterInfo('Banyue', ZzzAttribute.fire),
+  'Belle': ZzzCharacterInfo('Belle', ZzzAttribute.none),
   'Ben Bigger': ZzzCharacterInfo('Ben Bigger', ZzzAttribute.fire),
   'Billy Kid': ZzzCharacterInfo('Billy Kid', ZzzAttribute.physical),
   'Burnice White': ZzzCharacterInfo('Burnice White', ZzzAttribute.fire),
@@ -90,6 +92,7 @@ const zzzCharacterCatalog = <String, ZzzCharacterInfo>{
   'Ukinami Yuzuha': ZzzCharacterInfo('Ukinami Yuzuha', ZzzAttribute.physical),
   'Velina Airgid': ZzzCharacterInfo('Velina Airgid', ZzzAttribute.wind),
   'Vivian': ZzzCharacterInfo('Vivian', ZzzAttribute.ether),
+  'Wise': ZzzCharacterInfo('Wise', ZzzAttribute.none),
   'Yanagi': ZzzCharacterInfo('Yanagi', ZzzAttribute.electric),
   'Ye Shunguang': ZzzCharacterInfo('Ye Shunguang', ZzzAttribute.honedEdge),
   'Yidhari Murphy': ZzzCharacterInfo('Yidhari Murphy', ZzzAttribute.ice),
@@ -116,6 +119,7 @@ const zzzCharacterFolders = <String>[
   'Astra Yao',
   'Asaba Harumasa',
   'Banyue',
+  'Belle',
   'Ben Bigger',
   'Billy Kid',
   'Burnice White',
@@ -163,6 +167,7 @@ const zzzCharacterFolders = <String>[
   'Ukinami Yuzuha',
   'Velina Airgid',
   'Vivian',
+  'Wise',
   'Yanagi',
   'Ye Shunguang',
   'Yidhari Murphy',
@@ -177,6 +182,7 @@ const zzzSkinFolders = <String, List<String>>{
   'Alice Thymefield': ['Sea of Thyme'],
   'Aria': ['Cuteness Loading', 'Discordant Note'],
   'Astra Yao': ['Chandelier'],
+  'Belle': ['Delicate Sunlight', 'Summer Skies', 'Brilliance of Stars'],
   'Ellen Joe': ['On Campus'],
   'Jane Doe': ['Nocturne of Light'],
   'Komano Manato': ['White Heart Silhouette'],
@@ -191,6 +197,7 @@ const zzzSkinFolders = <String, List<String>>{
   'Ukinami Yuzuha': ['Tanuki in Broad Daylight'],
   'Velina Airgid': ['Shade of Leisure'],
   'Vivian': ['Iris of the Shore'],
+  'Wise': ['Soaring Crane', 'Peaceful Waves', 'Oath of Skies'],
   'Ye Shunguang': ['Touch of Dawnlight'],
   'Yixuan': ['Trails of Ink'],
 };
@@ -201,6 +208,10 @@ const zzzSkinAvatarAssets = <String, String>{
   'Aria - Cuteness Loading': 'assets/characters/aria/cuteness_loading.png',
   'Aria - Discordant Note': 'assets/characters/aria/discordant_note.png',
   'Astra Yao - Chandelier': 'assets/characters/astra_yao/chandelier.webp',
+  'Belle - Delicate Sunlight': 'assets/characters/belle/delicate_sunlight.webp',
+  'Belle - Summer Skies': 'assets/characters/belle/summer_skies.webp',
+  'Belle - Brilliance of Stars':
+      'assets/characters/belle/brilliance_of_stars.webp',
   'Ellen Joe - On Campus': 'assets/characters/ellen_joe/on_campus.webp',
   'Jane Doe - Nocturne of Light':
       'assets/characters/jane_doe/nocturne_of_light.webp',
@@ -234,6 +245,9 @@ const zzzSkinAvatarAssets = <String, String>{
       'assets/characters/velina_airgid/shade_of_leisure.png',
   'Vivian - Iris of the Shore':
       'assets/characters/vivian/iris_of_the_shore.webp',
+  'Wise - Soaring Crane': 'assets/characters/wise/soaring_crane.webp',
+  'Wise - Peaceful Waves': 'assets/characters/wise/peaceful_waves.webp',
+  'Wise - Oath of Skies': 'assets/characters/wise/oath_of_skies.webp',
   'Ye Shunguang - Touch of Dawnlight':
       'assets/characters/ye_shunguang/touch_of_dawnlight.png',
   'Yixuan - Trails of Ink': 'assets/characters/yixuan/trails_of_ink.webp',
@@ -247,6 +261,7 @@ const zzzAvatarAssets = <String, String>{
   'Astra Yao': 'assets/characters/astra_yao/default.png',
   'Asaba Harumasa': 'assets/characters/asaba_harumasa/default.png',
   'Banyue': 'assets/characters/banyue/default.png',
+  'Belle': 'assets/characters/belle/default.webp',
   'Ben Bigger': 'assets/characters/ben_bigger/default.png',
   'Billy Kid': 'assets/characters/billy_kid/default.png',
   'Burnice White': 'assets/characters/burnice_white/default.png',
@@ -294,6 +309,7 @@ const zzzAvatarAssets = <String, String>{
   'Ukinami Yuzuha': 'assets/characters/ukinami_yuzuha/default.png',
   'Velina Airgid': 'assets/characters/velina_airgid/default.png',
   'Vivian': 'assets/characters/vivian/default.png',
+  'Wise': 'assets/characters/wise/default.webp',
   'Yanagi': 'assets/characters/yanagi/default.png',
   'Ye Shunguang': 'assets/characters/ye_shunguang/default.png',
   'Yidhari Murphy': 'assets/characters/yidhari_murphy/default.png',

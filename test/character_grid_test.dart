@@ -3,6 +3,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:xxmi_manager/core/character_catalog.dart';
 import 'package:xxmi_manager/features/library/presentation/library_page.dart';
+import 'package:xxmi_manager/features/library/data/library_repository.dart';
 
 void main() {
   testWidgets('wheel keeps scrolling while hovering an avatar', (tester) async {
@@ -18,7 +19,7 @@ void main() {
             characters: zzzCharacterFolders
                 .map((name) => '$name (default)')
                 .toList(),
-            zipCounts: const {},
+            archiveCounts: const {},
             loading: false,
             onSelect: (_) {},
           ),
@@ -45,6 +46,82 @@ void main() {
     await mouse.removePointer();
   });
 
+  testWidgets('restores scroll position after opening and closing details', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(800, 632);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    var showGrid = true;
+    late StateSetter rebuild;
+    final characters = [for (var i = 0; i < 30; i++) 'Character $i (default)'];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: StatefulBuilder(
+            builder: (context, setState) {
+              rebuild = setState;
+              return showGrid
+                  ? CharacterGrid(
+                      characters: characters,
+                      archiveCounts: const {},
+                      loading: false,
+                      onSelect: (_) {},
+                    )
+                  : const SizedBox.shrink();
+            },
+          ),
+        ),
+      ),
+    );
+
+    final before = tester.state<ScrollableState>(find.byType(Scrollable));
+    before.position.jumpTo(300);
+    await tester.pump();
+
+    rebuild(() => showGrid = false);
+    await tester.pump();
+    rebuild(() => showGrid = true);
+    await tester.pumpAndSettle();
+
+    final after = tester.state<ScrollableState>(find.byType(Scrollable));
+    expect(after.position.pixels, 300);
+  });
+
+  testWidgets('shows mod folder status badges for one or multiple folders', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(800, 632);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: CharacterGrid(
+            characters: const ['A (default)', 'B (default)', 'C (default)'],
+            archiveCounts: const {},
+            folderStatuses: const {
+              'a (default)': ModFolderStatus(1, true),
+              'b (default)': ModFolderStatus(2, true),
+              'c (default)': ModFolderStatus(1, false),
+            },
+            showFolderStatus: true,
+            loading: false,
+            onSelect: (_) {},
+          ),
+        ),
+      ),
+    );
+
+    expect(find.byIcon(Icons.check), findsOneWidget);
+    expect(find.byIcon(Icons.close), findsNWidgets(2));
+  });
+
   testWidgets('keeps a skin immediately after its character across rows', (
     tester,
   ) async {
@@ -63,7 +140,7 @@ void main() {
               'Astra Yao (default)',
               'Astra Yao - Chandelier',
             ],
-            zipCounts: const {},
+            archiveCounts: const {},
             loading: false,
             onSelect: (_) {},
           ),
@@ -105,7 +182,7 @@ void main() {
               'Ellen Joe (default)',
               'Ellen Joe - On Campus',
             ],
-            zipCounts: const {},
+            archiveCounts: const {},
             loading: false,
             onSelect: (_) {},
           ),

@@ -13,7 +13,7 @@ Visual Mods Manager giúp bạn sắp xếp và cài đặt mod trang phục cho
 Khi mở ứng dụng lần đầu:
 
 1. Ở **Thư mục Mods**, chọn nơi bạn lưu các mod đã cài.
-2. Ở **Thư mục Download**, chọn nơi chứa các file ZIP mod.
+2. Ở **Thư mục Download**, chọn nơi chứa các file ZIP hoặc RAR mod.
    - Chọn thư mục có sẵn, hoặc
    - Chọn **Tạo mới** để tạo thư mục mới.
 3. Bấm **Bắt đầu quản lý**.
@@ -23,27 +23,29 @@ Nên đặt hai thư mục này bên ngoài thư mục cài đặt ứng dụng 
 ## Duyệt mod
 
 - Chọn tab **Mods** để xem các mod đã cài.
-- Chọn tab **Download** để xem các file ZIP đã tải.
+- Chọn tab **Download** để xem các file ZIP hoặc RAR đã tải.
 - Bấm vào ô nhân vật hoặc trang phục để xem nội dung bên trong.
 - Dùng biểu tượng kính lúp để tìm kiếm.
 - Bấm biểu tượng làm mới sau khi thêm hoặc xóa file bằng File Explorer.
 - Bấm biểu tượng thư mục trong màn hình chi tiết để mở vị trí tương ứng trên máy.
 
+Badge trên tab **Download** cho biết tổng số file ZIP và RAR trong mỗi trang phục. Trên tab **Mods**, dấu xanh cho biết có đúng một thư mục mod chứa dữ liệu; dấu đỏ cho biết thư mục mod rỗng hoặc có nhiều thư mục mod.
+
 ![Thư viện nhân vật](docs/images/library.png)
 
 ## Cài đặt trang phục
 
-1. Tải file ZIP trang phục và đặt vào thư mục trang phục tương ứng trong tab **Download**.
+1. Tải file ZIP hoặc RAR trang phục và đặt vào thư mục trang phục tương ứng trong tab **Download**.
 2. Mở ô trang phục đó.
-3. Bấm chuột phải vào file ZIP.
+3. Bấm chuột phải vào file ZIP hoặc RAR.
 4. Chọn **Dùng trang phục này**.
 5. Chuyển sang tab **Mods** để xem mod đã cài.
 
 ![Menu cài đặt trang phục](docs/images/right-click-menu.png)
 
-Bạn cần tự tải file ZIP trước; ứng dụng không tự tải mod từ Internet.
+Bạn cần tự tải file ZIP hoặc RAR trước; ứng dụng không tự tải mod từ Internet.
 
-## Xóa mod hoặc file ZIP
+## Xóa mod hoặc file ZIP/RAR
 
 1. Mở thư mục hoặc trang phục cần chỉnh sửa.
 2. Bấm chuột phải vào file hoặc thư mục.

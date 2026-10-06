@@ -48,13 +48,22 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
       state.copyWith(
         selectedTab: event.index,
         clearSelectedCharacter: true,
-        zipCounts: const {},
+        archiveCounts: const {},
+        modFolderStatuses: const {},
       ),
     );
     final rootPath = event.index == 0 ? state.modsPath : state.downloadPath;
-    final counts = await repository.scanZipCounts(rootPath);
+    final counts = await repository.scanArchiveCounts(rootPath);
+    final modFolderStatuses = event.index == 0
+        ? await repository.scanModFolderStatuses(rootPath)
+        : const <String, ModFolderStatus>{};
     if (state.selectedTab == event.index) {
-      emit(state.copyWith(zipCounts: counts));
+      emit(
+        state.copyWith(
+          archiveCounts: counts,
+          modFolderStatuses: modFolderStatuses,
+        ),
+      );
     }
   }
 
@@ -67,12 +76,16 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
           ? state.modsPath
           : state.downloadPath;
       final characters = await repository.scanSkinFoldersAt(rootPath);
-      final zipCounts = await repository.scanZipCounts(rootPath);
+      final archiveCounts = await repository.scanArchiveCounts(rootPath);
+      final modFolderStatuses = state.selectedTab == 0
+          ? await repository.scanModFolderStatuses(rootPath)
+          : const <String, ModFolderStatus>{};
       emit(
         state.copyWith(
           status: LibraryStatus.ready,
           characters: characters,
-          zipCounts: zipCounts,
+          archiveCounts: archiveCounts,
+          modFolderStatuses: modFolderStatuses,
         ),
       );
     } catch (error) {
@@ -80,12 +93,16 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
           ? state.modsPath
           : state.downloadPath;
       final characters = await repository.scanSkinFoldersAt(rootPath);
-      final zipCounts = await repository.scanZipCounts(rootPath);
+      final archiveCounts = await repository.scanArchiveCounts(rootPath);
+      final modFolderStatuses = state.selectedTab == 0
+          ? await repository.scanModFolderStatuses(rootPath)
+          : const <String, ModFolderStatus>{};
       emit(
         state.copyWith(
           status: LibraryStatus.ready,
           characters: characters,
-          zipCounts: zipCounts,
+          archiveCounts: archiveCounts,
+          modFolderStatuses: modFolderStatuses,
           errorMessage: error.toString(),
         ),
       );
