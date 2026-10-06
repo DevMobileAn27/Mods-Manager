@@ -441,6 +441,7 @@ class HeroAvatar extends StatelessWidget {
 }
 
 Color? _attributeBackground(ZzzAttribute? attribute) => switch (attribute) {
+  ZzzAttribute.none => const Color(0xffd7dce3),
   ZzzAttribute.physical => const Color(0xffe9c77b),
   ZzzAttribute.fire => const Color(0xfff2a36f),
   ZzzAttribute.ice => const Color(0xff9cd9ea),

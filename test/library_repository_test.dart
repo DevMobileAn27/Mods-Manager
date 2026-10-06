@@ -308,8 +308,13 @@ void main() {
       await File(p.join(downloadPath, 'A - ABC', 'A - Skin ABC.zip')).exists(),
       isTrue,
     );
-    expect(await Directory(p.join(modsPath, 'A')).exists(), isFalse);
-    expect(await Directory(p.join(downloadPath, 'A')).exists(), isFalse);
+    expect(await Directory(p.join(modsPath, 'A')).exists(), isTrue);
+    expect(await Directory(p.join(downloadPath, 'A')).exists(), isTrue);
+    expect(
+      await Directory(p.join(modsPath, 'A', 'A - Skin ABC')).list().isEmpty,
+      isTrue,
+    );
+    expect(await Directory(p.join(downloadPath, 'A')).list().isEmpty, isTrue);
   });
 
   test('renames root skin folders without losing their files', () async {
@@ -319,11 +324,32 @@ void main() {
 
     await repository.ensureCharacterFolders(modsPath, downloadPath);
 
-    expect(await oldFolder.exists(), isFalse);
+    expect(await oldFolder.exists(), isTrue);
+    expect(await oldFolder.list().isEmpty, isTrue);
     expect(
       await File(p.join(downloadPath, 'A - ABC', 'A.zip')).readAsString(),
       'download',
     );
     expect(await Directory(p.join(modsPath, 'A - ABC')).exists(), isTrue);
   });
+
+  test(
+    'migrates any legacy folder whose name contains the character',
+    () async {
+      final oldFolder = Directory(p.join(modsPath, 'A legacy mods'));
+      await oldFolder.create(recursive: true);
+      await File(p.join(oldFolder.path, 'config.ini')).writeAsString('legacy');
+
+      await repository.ensureCharacterFolders(modsPath, downloadPath);
+
+      expect(
+        await File(
+          p.join(modsPath, 'A (default)', 'config.ini'),
+        ).readAsString(),
+        'legacy',
+      );
+      expect(await oldFolder.exists(), isTrue);
+      expect(await oldFolder.list().isEmpty, isTrue);
+    },
+  );
 }

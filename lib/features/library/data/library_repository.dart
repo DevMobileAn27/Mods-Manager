@@ -475,7 +475,11 @@ class LibraryRepository {
     for (final character in characterCatalog) {
       final lowerCharacter = character.toLowerCase();
       if (lowerName == '$lowerCharacter (default)' ||
-          lowerName.startsWith('$lowerCharacter - ')) {
+          // `Character - Skin Name` is the legacy layout and must be
+          // migrated, while other `Character - Name` folders are valid
+          // system skin folders.
+          (lowerName.startsWith('$lowerCharacter - ') &&
+              !lowerName.startsWith('$lowerCharacter - skin '))) {
         return true;
       }
     }
@@ -526,10 +530,12 @@ class LibraryRepository {
     for (final entity in folders) {
       if (entity is! Directory) continue;
       final oldName = p.basename(entity.path);
+      if (_isCatalogSkinName(oldName)) continue;
+      if (_legacyCharacterForFolderName(oldName) == null) continue;
       final newName = _withoutSkinToken(oldName);
       if (newName == oldName) continue;
       final target = await skinDirectory(root.path, newName);
-      await _moveWithoutOverwrite(entity, target);
+      await _moveContentsWithoutDeletingSource(entity, target);
     }
   }
 
@@ -540,20 +546,29 @@ class LibraryRepository {
     final legacyFolders = <Directory>[];
     await for (final entity in root.list(followLinks: false)) {
       if (entity is Directory &&
-          _isLegacyCharacterName(p.basename(entity.path))) {
+          !_isCatalogSkinName(p.basename(entity.path)) &&
+          _legacyCharacterForFolderName(p.basename(entity.path)) != null) {
         legacyFolders.add(entity);
       }
     }
     for (final legacy in legacyFolders) {
-      final character = p.basename(legacy.path);
-      await for (final child in legacy.list(followLinks: false)) {
+      final legacyName = p.basename(legacy.path);
+      final character = _legacyCharacterForFolderName(legacyName)!;
+      final legacyTarget = _withoutSkinToken(legacyName);
+      final defaultTarget = legacyTarget == legacyName
+          ? '$character (default)'
+          : legacyTarget;
+      final children = await legacy.list(followLinks: false).toList();
+      for (final child in children) {
         final name = p.basename(child.path);
         if (child is Directory) {
           final target = await skinDirectory(
             root.path,
-            _withoutSkinToken(name),
+            _withoutSkinToken(name) == name
+                ? defaultTarget
+                : _withoutSkinToken(name),
           );
-          await _moveWithoutOverwrite(child, target);
+          await _moveContentsWithoutDeletingSource(child, target);
         } else if (child is File) {
           final stem = p.basenameWithoutExtension(name);
           final isNamedSkin = stem.toLowerCase().startsWith(
@@ -561,32 +576,63 @@ class LibraryRepository {
           );
           final skinName = isDownload && isNamedSkin
               ? _withoutSkinToken(stem)
-              : '$character (default)';
+              : defaultTarget;
           final targetDir = await skinDirectory(root.path, skinName);
           await targetDir.create(recursive: true);
           final target = File(p.join(targetDir.path, name));
           if (!await target.exists()) await child.rename(target.path);
         }
       }
-      if (await legacy.list(followLinks: false).isEmpty) {
-        await legacy.delete();
-      }
     }
   }
 
-  Future<void> _moveWithoutOverwrite(Directory source, Directory target) async {
+  /// Moves the contents into the system folder while deliberately preserving
+  /// the old source folder as an empty, user-visible folder for manual cleanup.
+  Future<void> _moveContentsWithoutDeletingSource(
+    Directory source,
+    Directory target,
+  ) async {
     if (!await target.exists()) {
-      await source.rename(target.path);
+      await target.create(recursive: true);
+      final children = await source.list(followLinks: false).toList();
+      for (final child in children) {
+        final destination = p.join(target.path, p.basename(child.path));
+        try {
+          await child.rename(destination);
+        } on FileSystemException {
+          if (child is Directory) {
+            await _copyDirectory(child, Directory(destination));
+            await child.delete(recursive: true);
+          } else if (child is File) {
+            await child.copy(destination);
+            await child.delete();
+          }
+        }
+      }
       return;
     }
-    await for (final child in source.list(followLinks: false)) {
+    final children = await source.list(followLinks: false).toList();
+    for (final child in children) {
       final destination = p.join(target.path, p.basename(child.path));
       if (child is Directory) {
-        await _moveWithoutOverwrite(child, Directory(destination));
+        await _moveContentsWithoutDeletingSource(child, Directory(destination));
       } else if (child is File && !await File(destination).exists()) {
         await child.rename(destination);
       }
     }
-    if (await source.list(followLinks: false).isEmpty) await source.delete();
+  }
+
+  String? _legacyCharacterForFolderName(String name) {
+    final lower = name.trim().toLowerCase();
+    for (final character in characterCatalog) {
+      final prefix = character.toLowerCase();
+      if (lower == prefix ||
+          lower.startsWith('$prefix - skin ') ||
+          lower.startsWith('$prefix - ') ||
+          lower.startsWith('$prefix ')) {
+        return character;
+      }
+    }
+    return null;
   }
 }
