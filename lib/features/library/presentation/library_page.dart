@@ -8,6 +8,7 @@ import 'package:path/path.dart' as p;
 import 'animated_search_field.dart';
 import 'library_card.dart';
 import 'library_tab_bar.dart';
+import 'rename_entry_dialog.dart';
 import '../../../core/character_catalog.dart';
 import '../bloc/library_bloc.dart';
 import '../bloc/library_event.dart';
@@ -553,6 +554,23 @@ class _DetailViewState extends State<DetailView> {
     widget.onRefresh();
   }
 
+  Future<void> rename(FileSystemEntity entry) async {
+    final repository = context.read<LibraryBloc>().repository;
+    final renamed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => RenameEntryDialog(
+        entry: entry,
+        onRename: (name) async {
+          await repository.renameEntry(entry, name);
+        },
+      ),
+    );
+    if (renamed != true || !mounted) return;
+    await load();
+    if (mounted) widget.onRefresh();
+  }
+
   Future<void> useArchive(File archive) async {
     if (_installingArchive) return;
     _installingArchive = true;
@@ -682,6 +700,17 @@ class _DetailViewState extends State<DetailView> {
             ),
           ),
         PopupMenuItem(
+          value: 'rename',
+          child: ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(
+              Icons.drive_file_rename_outline,
+              color: AppColors.primary,
+            ),
+            title: Text(AppStrings.of(context).rename),
+          ),
+        ),
+        PopupMenuItem(
           value: 'delete',
           child: ListTile(
             contentPadding: EdgeInsets.zero,
@@ -691,6 +720,8 @@ class _DetailViewState extends State<DetailView> {
         ),
       ],
     );
+    if (!mounted) return;
+    if (action == 'rename') rename(e);
     if (action == 'delete') delete(e);
     if (action == 'use') useArchive(e as File);
   }

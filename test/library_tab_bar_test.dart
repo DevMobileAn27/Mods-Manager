@@ -27,6 +27,19 @@ void main() {
       final start = tester.getTopLeft(indicator).dx;
       Color? textColor(String label) =>
           tester.widget<Text>(find.text(label)).style?.color;
+      double indicatorScale() => tester
+          .widget<Transform>(
+            find
+                .ancestor(of: indicator, matching: find.byType(Transform))
+                .first,
+          )
+          .transform
+          .storage[0];
+      Color indicatorColor() =>
+          (tester.widget<DecoratedBox>(indicator).decoration as BoxDecoration)
+              .color!;
+      expect(indicatorScale(), 1);
+      expect(indicatorColor().toARGB32(), AppColors.primary.toARGB32());
       expect(textColor('Mods'), AppColors.onPrimary);
       expect(textColor('Download'), AppColors.textSecondary);
 
@@ -34,6 +47,11 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 140));
       final midpoint = tester.getTopLeft(indicator).dx;
+      expect(indicatorScale(), closeTo(0.85, 0.001));
+      expect(
+        indicatorColor().toARGB32(),
+        Color.lerp(AppColors.primary, Colors.black, 0.20)!.toARGB32(),
+      );
       expect(midpoint, greaterThan(start));
       expect(midpoint, lessThan(start + 126));
       expect(textColor('Download'), isNot(AppColors.textSecondary));
@@ -48,12 +66,16 @@ void main() {
       expect(tester.getTopLeft(indicator).dx, closeTo(midpoint, 0.01));
       await tester.pump(const Duration(milliseconds: 280));
       expect(tester.getTopLeft(indicator).dx, start);
+      expect(indicatorScale(), 1);
+      expect(indicatorColor().toARGB32(), AppColors.primary.toARGB32());
       expect(textColor('Mods'), AppColors.onPrimary);
 
       await tester.tap(find.text('Download'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 280));
       expect(tester.getTopLeft(indicator).dx, start + 126);
+      expect(indicatorScale(), 1);
+      expect(indicatorColor().toARGB32(), AppColors.primary.toARGB32());
       expect(textColor('Mods'), AppColors.textSecondary);
       expect(textColor('Download'), AppColors.onPrimary);
     },

@@ -42,6 +42,23 @@ class AppStrings {
   String get deleteTitle =>
       _text('Xoá mục này?', 'Delete this item?', '删除此项目？');
   String get delete => _text('Xoá', 'Delete', '删除');
+  String get rename => _text('Đổi tên', 'Rename', '重命名');
+  String get newName => _text('Tên mới', 'New name', '新名称');
+  String get invalidEntryName => _text(
+    'Tên không hợp lệ. Không dùng ký tự đặc biệt hoặc tên dành riêng của hệ thống.',
+    'Invalid name. Avoid special characters and reserved system names.',
+    '名称无效。请勿使用特殊字符或系统保留名称。',
+  );
+  String get duplicateEntryName => _text(
+    'Đã có file hoặc thư mục với tên này.',
+    'A file or folder with this name already exists.',
+    '已存在同名文件或文件夹。',
+  );
+  String get renameError => _text(
+    'Không thể đổi tên. Hãy kiểm tra quyền truy cập hoặc file đang được sử dụng.',
+    'Could not rename. Check permissions or whether the item is in use.',
+    '无法重命名。请检查权限或该项目是否正在使用。',
+  );
   String get cancel => _text('Huỷ', 'Cancel', '取消');
   String get useOutfit =>
       _text('Dùng trang phục này', 'Use this outfit', '使用此服装');

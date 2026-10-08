@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_theme.dart';
@@ -38,11 +40,18 @@ class LibraryTabBar extends StatelessWidget {
             child: FractionallySizedBox(
               widthFactor: 0.5,
               heightFactor: 1,
-              child: DecoratedBox(
-                key: const ValueKey('library-tab-indicator'),
-                decoration: BoxDecoration(
-                  color: AppColors.primary,
-                  borderRadius: BorderRadius.circular(24),
+              child: Transform.scale(
+                scale: 1 - 0.15 * math.sin(math.pi * position),
+                child: DecoratedBox(
+                  key: const ValueKey('library-tab-indicator'),
+                  decoration: BoxDecoration(
+                    color: Color.lerp(
+                      AppColors.primary,
+                      Colors.black,
+                      0.20 * math.sin(math.pi * position),
+                    ),
+                    borderRadius: BorderRadius.circular(24),
+                  ),
                 ),
               ),
             ),

@@ -68,3 +68,9 @@ Thay đổi có hiệu lực ngay sau khi chọn.
 - Khi có bản mới, làm theo hướng dẫn tải và cài đặt.
 
 Nếu danh sách chưa thay đổi sau khi chỉnh sửa thư mục, hãy bấm biểu tượng **Làm mới**.
+
+## Giấy phép
+
+Copyright (c) 2026 Nguyễn Quốc An.
+
+Visual Mods Manager được phát hành theo [GNU General Public License v3.0 (GPL-3.0)](LICENSE).

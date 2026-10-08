@@ -22,6 +22,88 @@ void main() {
     if (await sandbox.exists()) await sandbox.delete(recursive: true);
   });
 
+  group('rename detail entries', () {
+    test('renames an archive without changing its contents', () async {
+      final source = File(p.join(sandbox.path, 'old.zip'));
+      await source.writeAsBytes([0, 1, 127, 255]);
+
+      final renamed = await repository.renameEntry(source, 'new.zip');
+
+      expect(await source.exists(), isFalse);
+      expect(renamed.path, p.join(sandbox.path, 'new.zip'));
+      expect(await File(renamed.path).readAsBytes(), [0, 1, 127, 255]);
+    });
+
+    test('renames a directory and preserves nested files', () async {
+      final source = Directory(p.join(sandbox.path, 'old'));
+      await Directory(p.join(source.path, 'nested')).create(recursive: true);
+      await File(p.join(source.path, 'nested', 'mod.ini')).writeAsString('mod');
+
+      final renamed = await repository.renameEntry(source, 'new');
+
+      expect(await source.exists(), isFalse);
+      expect(
+        await File(p.join(renamed.path, 'nested', 'mod.ini')).readAsString(),
+        'mod',
+      );
+    });
+
+    test(
+      'rejects case-insensitive collisions without overwriting files',
+      () async {
+        final source = File(p.join(sandbox.path, 'old.zip'));
+        final existing = File(p.join(sandbox.path, 'Existing.zip'));
+        await source.writeAsString('source');
+        await existing.writeAsString('existing');
+
+        await expectLater(
+          repository.renameEntry(source, 'existing.zip'),
+          throwsA(
+            isA<RenameEntryException>().having(
+              (error) => error.reason,
+              'reason',
+              RenameEntryFailure.alreadyExists,
+            ),
+          ),
+        );
+
+        expect(await source.readAsString(), 'source');
+        expect(await existing.readAsString(), 'existing');
+      },
+    );
+
+    test('rejects unsafe paths and Windows reserved names', () async {
+      final source = File(p.join(sandbox.path, 'old.zip'));
+      await source.writeAsString('source');
+      for (final name in [
+        '',
+        '.',
+        '..',
+        '../escape.zip',
+        r'a\b.zip',
+        'CON.zip',
+        'LPT1',
+        'a.',
+        'a?',
+        ' trailing ',
+      ]) {
+        await expectLater(
+          repository.renameEntry(source, name),
+          throwsA(
+            isA<RenameEntryException>().having(
+              (error) => error.reason,
+              'reason',
+              RenameEntryFailure.invalidName,
+            ),
+          ),
+          reason: name,
+        );
+      }
+      expect(await source.readAsString(), 'source');
+      expect(await sandbox.list().length, 1);
+    });
+  });
+
   test(
     'creates one default skin folder in each root and syncs added skins',
     () async {
