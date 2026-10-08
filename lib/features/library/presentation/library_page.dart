@@ -7,6 +7,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:path/path.dart' as p;
 import 'animated_search_field.dart';
 import 'library_card.dart';
+import 'library_tab_bar.dart';
 import '../../../core/character_catalog.dart';
 import '../bloc/library_bloc.dart';
 import '../bloc/library_event.dart';
@@ -138,26 +139,10 @@ class LibraryTopBar extends StatelessWidget {
     ),
     child: Row(
       children: [
-        Container(
-          padding: const EdgeInsets.all(4),
-          decoration: BoxDecoration(
-            color: AppColors.tabTrack,
-            borderRadius: BorderRadius.circular(28),
-            boxShadow: const [
-              BoxShadow(
-                color: AppColors.tabShadow,
-                blurRadius: 16,
-                spreadRadius: 1,
-              ),
-            ],
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _tab(context, 0, Icons.extension_outlined, 'Mods'),
-              _tab(context, 1, Icons.archive_outlined, 'Download'),
-            ],
-          ),
+        LibraryTabBar(
+          selectedIndex: state.selectedTab,
+          onChanged: (index) =>
+              context.read<LibraryBloc>().add(LibraryTabChanged(index)),
         ),
         const Spacer(),
         AnimatedSearchField(onChanged: onSearchChanged),
@@ -196,41 +181,6 @@ class LibraryTopBar extends StatelessWidget {
       ],
     ),
   );
-
-  Widget _tab(BuildContext context, int index, IconData icon, String label) {
-    final active = state.selectedTab == index;
-    return InkWell(
-      borderRadius: BorderRadius.circular(24),
-      onTap: () => context.read<LibraryBloc>().add(LibraryTabChanged(index)),
-      child: Container(
-        constraints: const BoxConstraints(minWidth: 116),
-        padding: const EdgeInsets.symmetric(horizontal: 19, vertical: 10),
-        decoration: BoxDecoration(
-          color: active ? AppColors.primary : AppColors.transparent,
-          borderRadius: BorderRadius.circular(24),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              size: 18,
-              color: active ? AppColors.onPrimary : AppColors.textSecondary,
-            ),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: TextStyle(
-                fontWeight: FontWeight.w700,
-                fontSize: 14,
-                color: active ? AppColors.onPrimary : AppColors.textSecondary,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 class CharacterGrid extends StatelessWidget {
@@ -309,6 +259,7 @@ class CharacterGrid extends StatelessWidget {
     width: width,
     height: height,
     child: LibraryCard(
+      hoverBorderWidth: 5,
       onTap: () => onSelect(skinName),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -425,6 +376,9 @@ class HeroAvatar extends StatelessWidget {
   Widget build(BuildContext context) {
     final hue = (name.codeUnitAt(0) * 37) % 360;
     final attribute = zzzCharacterInfoFor(name)?.attribute;
+    final tint =
+        _attributeBackground(attribute) ??
+        HSVColor.fromAHSV(1, hue.toDouble(), .28, .95).toColor();
     final asset = assetPath ?? zzzAvatarAssets[name];
     final width = size * .78;
     final height = size * 1.15;
@@ -451,12 +405,13 @@ class HeroAvatar extends StatelessWidget {
           end: Alignment.bottomRight,
           colors: [
             Color.alphaBlend(
-              (_attributeBackground(attribute) ??
-                      HSVColor.fromAHSV(1, hue.toDouble(), .28, .95).toColor())
-                  .withValues(alpha: 0.25),
+              tint.withValues(alpha: 0.55),
               AppColors.imageShade,
             ),
-            AppColors.imageShade,
+            Color.alphaBlend(
+              tint.withValues(alpha: 0.15),
+              AppColors.imageShade,
+            ),
           ],
         ),
         borderRadius: BorderRadius.circular(4),

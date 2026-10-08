@@ -18,13 +18,14 @@ class _AnimatedSearchFieldState extends State<AnimatedSearchField> {
   static const _collapsedSize = 42.0;
   static const _expandedWidth = 250.0;
   static const _animationDuration = Duration(milliseconds: 320);
-  static const _collapseDelay = Duration(seconds: 3);
+  static const _collapseDelay = Duration(milliseconds: 1500);
 
   final _controller = TextEditingController();
   final _focusNode = FocusNode();
   Timer? _collapseTimer;
   bool _expanded = true;
   bool _hovered = false;
+  bool _hasText = false;
 
   BorderRadius get _borderRadius => BorderRadius.circular(_expanded ? 14 : 21);
 
@@ -32,6 +33,7 @@ class _AnimatedSearchFieldState extends State<AnimatedSearchField> {
   void initState() {
     super.initState();
     _focusNode.addListener(_handleFocusChange);
+    _controller.addListener(_handleTextChange);
     _scheduleCollapse();
   }
 
@@ -40,6 +42,7 @@ class _AnimatedSearchFieldState extends State<AnimatedSearchField> {
     _collapseTimer?.cancel();
     _focusNode.removeListener(_handleFocusChange);
     _focusNode.dispose();
+    _controller.removeListener(_handleTextChange);
     _controller.dispose();
     super.dispose();
   }
@@ -50,6 +53,18 @@ class _AnimatedSearchFieldState extends State<AnimatedSearchField> {
     } else {
       _scheduleCollapse();
     }
+  }
+
+  void _handleTextChange() {
+    final hasText = _controller.text.isNotEmpty;
+    if (hasText != _hasText) setState(() => _hasText = hasText);
+  }
+
+  void _clearText() {
+    _controller.clear();
+    widget.onChanged('');
+    _focusNode.requestFocus();
+    _scheduleCollapse();
   }
 
   void _expand({bool focus = false}) {
@@ -122,12 +137,17 @@ class _AnimatedSearchFieldState extends State<AnimatedSearchField> {
             width: _collapsedSize - 2,
             height: _collapsedSize - 2,
             child: IconButton(
-              tooltip: AppStrings.of(context).search,
+              tooltip: _hasText
+                  ? AppStrings.of(context).clearSearch
+                  : AppStrings.of(context).search,
               style: IconButton.styleFrom(
                 shape: RoundedRectangleBorder(borderRadius: _borderRadius),
               ).copyWith(animationDuration: _animationDuration),
-              onPressed: () => _expand(focus: true),
-              icon: const Icon(Icons.search, color: AppColors.textMuted),
+              onPressed: _hasText ? _clearText : () => _expand(focus: true),
+              icon: Icon(
+                _hasText ? Icons.close : Icons.search,
+                color: AppColors.textMuted,
+              ),
             ),
           ),
         ],

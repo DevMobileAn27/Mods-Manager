@@ -25,6 +25,7 @@ class AppStrings {
   String get change => _text('Thay đổi', 'Change', '更改');
   String get refresh => _text('Làm mới', 'Refresh', '刷新');
   String get search => _text('Tìm kiếm', 'Search', '搜索');
+  String get clearSearch => _text('Xoá tìm kiếm', 'Clear search', '清除搜索');
   String get searchHint => _text(
     'Tìm nhân vật hoặc trang phục',
     'Search characters or outfits',

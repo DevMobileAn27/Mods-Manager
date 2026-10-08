@@ -7,12 +7,14 @@ class LibraryCard extends StatefulWidget {
   final Widget child;
   final VoidCallback? onTap;
   final GestureTapDownCallback? onSecondaryTapDown;
+  final double hoverBorderWidth;
 
   const LibraryCard({
     super.key,
     required this.child,
     this.onTap,
     this.onSecondaryTapDown,
+    this.hoverBorderWidth = 1,
   });
 
   @override
@@ -28,7 +30,14 @@ class _LibraryCardState extends State<LibraryCard> {
     decoration: BoxDecoration(
       color: AppColors.surface,
       borderRadius: BorderRadius.circular(6),
-      border: Border.all(color: hovered ? AppColors.primary : AppColors.border),
+      border: Border.all(color: AppColors.border),
+    ),
+    foregroundDecoration: BoxDecoration(
+      borderRadius: BorderRadius.circular(6),
+      border: Border.all(
+        color: hovered ? AppColors.primary : AppColors.transparent,
+        width: widget.hoverBorderWidth,
+      ),
     ),
     clipBehavior: Clip.antiAlias,
     child: Material(
