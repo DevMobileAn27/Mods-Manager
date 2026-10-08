@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/localization/app_strings.dart';
 
 class AnimatedSearchField extends StatefulWidget {
   final ValueChanged<String> onChanged;
@@ -24,6 +25,8 @@ class _AnimatedSearchFieldState extends State<AnimatedSearchField> {
   Timer? _collapseTimer;
   bool _expanded = true;
   bool _hovered = false;
+
+  BorderRadius get _borderRadius => BorderRadius.circular(_expanded ? 14 : 21);
 
   @override
   void initState() {
@@ -88,7 +91,8 @@ class _AnimatedSearchFieldState extends State<AnimatedSearchField> {
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: AppColors.tabTrack,
-        borderRadius: BorderRadius.circular(_expanded ? 14 : 21),
+        border: Border.all(color: AppColors.border),
+        borderRadius: _borderRadius,
       ),
       child: Row(
         children: [
@@ -105,20 +109,23 @@ class _AnimatedSearchFieldState extends State<AnimatedSearchField> {
                     _collapseTimer?.cancel();
                   }
                 },
-                decoration: const InputDecoration(
-                  hintText: 'Tìm nhân vật hoặc skin',
+                decoration: InputDecoration(
+                  hintText: AppStrings.of(context).searchHint,
                   border: InputBorder.none,
                   isDense: true,
-                  contentPadding: EdgeInsets.only(left: 14),
+                  contentPadding: const EdgeInsets.only(left: 14),
                 ),
                 style: const TextStyle(fontSize: 13, color: AppColors.text),
               ),
             ),
           SizedBox(
-            width: _collapsedSize,
-            height: _collapsedSize,
+            width: _collapsedSize - 2,
+            height: _collapsedSize - 2,
             child: IconButton(
-              tooltip: 'Tìm kiếm',
+              tooltip: AppStrings.of(context).search,
+              style: IconButton.styleFrom(
+                shape: RoundedRectangleBorder(borderRadius: _borderRadius),
+              ).copyWith(animationDuration: _animationDuration),
               onPressed: () => _expand(focus: true),
               icon: const Icon(Icons.search, color: AppColors.textMuted),
             ),
