@@ -1,9 +1,14 @@
 import '../../../core/theme/app_theme.dart';
+import '../../../core/localization/app_strings.dart';
+import '../../../core/widgets/app_background.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:path/path.dart' as p;
 import 'animated_search_field.dart';
+import 'library_card.dart';
+import 'library_tab_bar.dart';
+import 'rename_entry_dialog.dart';
 import '../../../core/character_catalog.dart';
 import '../bloc/library_bloc.dart';
 import '../bloc/library_event.dart';
@@ -60,43 +65,45 @@ class _LibraryShellState extends State<_LibraryShell> {
                 .toList();
       return Scaffold(
         backgroundColor: AppColors.background,
-        body: Column(
-          children: [
-            LibraryTopBar(
-              state: state,
-              onPathsChanged: widget.onPathsChanged,
-              onSearchChanged: (value) => setState(() => searchQuery = value),
-            ),
-            Expanded(
-              child: state.selectedCharacter == null
-                  ? CharacterGrid(
-                      // Keep a separate scroll position for each library tab
-                      // when the grid is temporarily replaced by DetailView.
-                      key: ValueKey(state.selectedTab),
-                      scrollStorageKey: 'library-tab-${state.selectedTab}',
-                      characters: visibleCharacters,
-                      archiveCounts: state.archiveCounts,
-                      folderStatuses: state.modFolderStatuses,
-                      showFolderStatus: state.selectedTab == 0,
-                      loading: state.status == LibraryStatus.loading,
-                      onSelect: (name) => context.read<LibraryBloc>().add(
-                        LibraryCharacterOpened(name),
+        body: AppBackground(
+          child: Column(
+            children: [
+              LibraryTopBar(
+                state: state,
+                onPathsChanged: widget.onPathsChanged,
+                onSearchChanged: (value) => setState(() => searchQuery = value),
+              ),
+              Expanded(
+                child: state.selectedCharacter == null
+                    ? CharacterGrid(
+                        // Keep a separate scroll position for each library tab
+                        // when the grid is temporarily replaced by DetailView.
+                        key: ValueKey(state.selectedTab),
+                        scrollStorageKey: 'library-tab-${state.selectedTab}',
+                        characters: visibleCharacters,
+                        archiveCounts: state.archiveCounts,
+                        folderStatuses: state.modFolderStatuses,
+                        showFolderStatus: state.selectedTab == 0,
+                        loading: state.status == LibraryStatus.loading,
+                        onSelect: (name) => context.read<LibraryBloc>().add(
+                          LibraryCharacterOpened(name),
+                        ),
+                      )
+                    : DetailView(
+                        skinName: state.selectedCharacter!,
+                        root: root,
+                        isDownload: state.selectedTab == 1,
+                        modsRoot: state.modsPath,
+                        onBack: () => context.read<LibraryBloc>().add(
+                          const LibraryCharacterClosed(),
+                        ),
+                        onRefresh: () => context.read<LibraryBloc>().add(
+                          const LibraryRefreshed(),
+                        ),
                       ),
-                    )
-                  : DetailView(
-                      skinName: state.selectedCharacter!,
-                      root: root,
-                      isDownload: state.selectedTab == 1,
-                      modsRoot: state.modsPath,
-                      onBack: () => context.read<LibraryBloc>().add(
-                        const LibraryCharacterClosed(),
-                      ),
-                      onRefresh: () => context.read<LibraryBloc>().add(
-                        const LibraryRefreshed(),
-                      ),
-                    ),
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
       );
     },
@@ -114,42 +121,44 @@ class LibraryTopBar extends StatelessWidget {
     required this.onSearchChanged,
   });
 
+  ButtonStyle get _iconButtonStyle => IconButton.styleFrom(
+    backgroundColor: AppColors.tabTrack,
+    side: const BorderSide(color: AppColors.border),
+    shape: const CircleBorder(),
+    fixedSize: const Size.square(42),
+    minimumSize: const Size.square(42),
+    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+  );
+
   @override
   Widget build(BuildContext context) => Container(
-    height: 68,
-    padding: const EdgeInsets.symmetric(horizontal: 22),
+    height: 76,
+    padding: const EdgeInsets.symmetric(horizontal: 28),
     decoration: const BoxDecoration(
-      color: AppColors.surface,
+      color: AppColors.background,
       border: Border(bottom: BorderSide(color: AppColors.border)),
     ),
     child: Row(
       children: [
-        Container(
-          padding: const EdgeInsets.all(4),
-          decoration: BoxDecoration(
-            color: AppColors.tabTrack,
-            borderRadius: BorderRadius.circular(28),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _tab(context, 0, Icons.extension_outlined, 'Mods'),
-              _tab(context, 1, Icons.archive_outlined, 'Download'),
-            ],
-          ),
+        LibraryTabBar(
+          selectedIndex: state.selectedTab,
+          onChanged: (index) =>
+              context.read<LibraryBloc>().add(LibraryTabChanged(index)),
         ),
         const Spacer(),
         AnimatedSearchField(onChanged: onSearchChanged),
         const SizedBox(width: 10),
         IconButton(
-          tooltip: 'Làm mới',
+          tooltip: AppStrings.of(context).refresh,
+          style: _iconButtonStyle,
           onPressed: () =>
               context.read<LibraryBloc>().add(const LibraryRefreshed()),
           icon: const Icon(Icons.refresh, color: AppColors.textMuted),
         ),
-        const SizedBox(width: 6),
+        const SizedBox(width: 10),
         IconButton(
-          tooltip: 'Settings',
+          tooltip: AppStrings.of(context).settings,
+          style: _iconButtonStyle,
           onPressed: () async {
             final bloc = context.read<LibraryBloc>();
             await Navigator.push(
@@ -173,40 +182,6 @@ class LibraryTopBar extends StatelessWidget {
       ],
     ),
   );
-
-  Widget _tab(BuildContext context, int index, IconData icon, String label) {
-    final active = state.selectedTab == index;
-    return InkWell(
-      borderRadius: BorderRadius.circular(24),
-      onTap: () => context.read<LibraryBloc>().add(LibraryTabChanged(index)),
-      child: Container(
-        constraints: const BoxConstraints(minWidth: 116),
-        padding: const EdgeInsets.symmetric(horizontal: 19, vertical: 10),
-        decoration: BoxDecoration(
-          color: active ? AppColors.primary : AppColors.transparent,
-          borderRadius: BorderRadius.circular(24),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              size: 18,
-              color: active ? AppColors.surface : AppColors.textSecondary,
-            ),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: TextStyle(
-                fontWeight: FontWeight.w700,
-                color: active ? AppColors.surface : AppColors.textSecondary,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 class CharacterGrid extends StatelessWidget {
@@ -232,7 +207,7 @@ class CharacterGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     if (loading) return const Center(child: CircularProgressIndicator());
     if (characters.isEmpty) {
-      return const Center(child: Text('Không tìm thấy nhân vật hoặc skin.'));
+      return Center(child: Text(AppStrings.of(context).noCharacters));
     }
     return LayoutBuilder(
       builder: (context, box) {
@@ -284,70 +259,71 @@ class CharacterGrid extends StatelessWidget {
   ) => SizedBox(
     width: width,
     height: height,
-    child: InkWell(
+    child: LibraryCard(
+      hoverBorderWidth: 5,
       onTap: () => onSelect(skinName),
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.border),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(10, 14, 10, 12),
-          child: Column(
-            children: [
-              Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  HeroAvatar(
-                    name: _characterForSkin(skinName),
-                    size: avatarSize,
-                    assetPath: _skinAssetFor(skinName),
-                  ),
-                  if (showFolderStatus && folderStatus != null)
-                    _FolderStatusBadge(status: folderStatus)
-                  else if (!showFolderStatus && archiveCount > 0)
-                    Positioned(
-                      top: 10,
-                      right: 10,
-                      child: Container(
-                        width: 28,
-                        height: 28,
-                        decoration: const BoxDecoration(
-                          color: Color.fromRGBO(0, 0, 0, 0.5),
-                          shape: BoxShape.circle,
-                        ),
-                        alignment: Alignment.center,
-                        child: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Text(
-                            '$archiveCount',
-                            style: const TextStyle(
-                              color: AppColors.surface,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                            ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                HeroAvatar(
+                  name: _characterForSkin(skinName),
+                  size: avatarSize,
+                  assetPath: _skinAssetFor(skinName),
+                ),
+                if (showFolderStatus && folderStatus != null)
+                  _FolderStatusBadge(status: folderStatus)
+                else if (!showFolderStatus && archiveCount > 0)
+                  Positioned(
+                    top: 10,
+                    right: 10,
+                    child: Container(
+                      width: 28,
+                      height: 28,
+                      decoration: const BoxDecoration(
+                        color: AppColors.badgeBackground,
+                        shape: BoxShape.circle,
+                      ),
+                      alignment: Alignment.center,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          '$archiveCount',
+                          style: const TextStyle(
+                            color: AppColors.onPrimary,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
                       ),
                     ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              Text(
-                _displaySkinName(skinName),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
+                  ),
+              ],
+            ),
           ),
-        ),
+          Container(
+            height: 64,
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            alignment: Alignment.centerLeft,
+            decoration: const BoxDecoration(
+              border: Border(top: BorderSide(color: AppColors.border)),
+            ),
+            child: Text(
+              _displaySkinName(skinName),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: AppColors.text,
+                fontSize: 17,
+                height: 1.2,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
       ),
     ),
   );
@@ -364,15 +340,15 @@ class _FolderStatusBadge extends StatelessWidget {
     right: 10,
     child: Tooltip(
       message: status.isValid
-          ? 'Hợp lệ: có 1 thư mục mod chứa dữ liệu'
+          ? AppStrings.of(context).validModFolder
           : status.folderCount == 1
-          ? 'Không hợp lệ: thư mục mod rỗng'
-          : 'Không hợp lệ: có ${status.folderCount} thư mục mod',
+          ? AppStrings.of(context).emptyModFolder
+          : AppStrings.of(context).modFolderCount(status.folderCount),
       child: Container(
         width: 28,
         height: 28,
         decoration: const BoxDecoration(
-          color: Color.fromRGBO(0, 0, 0, 0.5),
+          color: AppColors.badgeBackground,
           shape: BoxShape.circle,
         ),
         alignment: Alignment.center,
@@ -401,6 +377,9 @@ class HeroAvatar extends StatelessWidget {
   Widget build(BuildContext context) {
     final hue = (name.codeUnitAt(0) * 37) % 360;
     final attribute = zzzCharacterInfoFor(name)?.attribute;
+    final tint =
+        _attributeBackground(attribute) ??
+        HSVColor.fromAHSV(1, hue.toDouble(), .28, .95).toColor();
     final asset = assetPath ?? zzzAvatarAssets[name];
     final width = size * .78;
     final height = size * 1.15;
@@ -415,17 +394,28 @@ class HeroAvatar extends StatelessWidget {
       style: TextStyle(
         fontSize: size * .27,
         fontWeight: FontWeight.w700,
-        color: HSVColor.fromAHSV(1, hue.toDouble(), .65, .3).toColor(),
+        color: AppColors.textSecondary,
       ),
     );
     return Container(
       width: width,
       height: height,
       decoration: BoxDecoration(
-        color:
-            _attributeBackground(attribute) ??
-            HSVColor.fromAHSV(1, hue.toDouble(), .28, .95).toColor(),
-        borderRadius: BorderRadius.circular(12),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color.alphaBlend(
+              tint.withValues(alpha: 0.55),
+              AppColors.imageShade,
+            ),
+            Color.alphaBlend(
+              tint.withValues(alpha: 0.15),
+              AppColors.imageShade,
+            ),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(4),
       ),
       clipBehavior: Clip.antiAlias,
       child: asset == null
@@ -504,6 +494,7 @@ class DetailView extends StatefulWidget {
 class _DetailViewState extends State<DetailView> {
   List<FileSystemEntity> entries = [];
   bool loading = true;
+  bool _installingArchive = false;
   @override
   void initState() {
     super.initState();
@@ -539,16 +530,16 @@ class _DetailViewState extends State<DetailView> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
-        title: const Text('Xoá mục này?'),
+        title: Text(AppStrings.of(c).deleteTitle),
         content: Text(p.basename(e.path)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(c, false),
-            child: const Text('Huỷ'),
+            child: Text(AppStrings.of(c).cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(c, true),
-            child: const Text('Xoá'),
+            child: Text(AppStrings.of(c).delete),
           ),
         ],
       ),
@@ -563,32 +554,92 @@ class _DetailViewState extends State<DetailView> {
     widget.onRefresh();
   }
 
+  Future<void> rename(FileSystemEntity entry) async {
+    final repository = context.read<LibraryBloc>().repository;
+    final renamed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => RenameEntryDialog(
+        entry: entry,
+        onRename: (name) async {
+          await repository.renameEntry(entry, name);
+        },
+      ),
+    );
+    if (renamed != true || !mounted) return;
+    await load();
+    if (mounted) widget.onRefresh();
+  }
+
   Future<void> useArchive(File archive) async {
+    if (_installingArchive) return;
+    _installingArchive = true;
+    final repository = context.read<LibraryBloc>().repository;
+    final modsRoot = widget.modsRoot;
+    final skinName = widget.skinName;
+    final overlay = OverlayEntry(
+      builder: (context) => Stack(
+        children: [
+          const ModalBarrier(
+            dismissible: false,
+            color: AppColors.badgeBackground,
+          ),
+          Center(
+            child: Card(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 32,
+                  vertical: 24,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircularProgressIndicator(),
+                    SizedBox(height: 16),
+                    Text(AppStrings.of(context).extracting),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+    Overlay.of(context, rootOverlay: true).insert(overlay);
     try {
-      final installedFolder = await context
-          .read<LibraryBloc>()
-          .repository
-          .installArchive(archive, widget.modsRoot, widget.skinName);
+      // Give the overlay a frame before archive decoding begins.
+      await WidgetsBinding.instance.endOfFrame;
+      final installedFolder = await repository.installArchive(
+        archive,
+        modsRoot,
+        skinName,
+      );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Đã cài skin vào Mods/${widget.skinName}/$installedFolder',
+              AppStrings.of(
+                context,
+              ).installed('Mods/$skinName/$installedFolder'),
             ),
           ),
         );
       }
-      widget.onRefresh();
+      if (mounted) widget.onRefresh();
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Không thể giải nén ${p.basename(archive.path)}. Hãy kiểm tra file hoặc mật khẩu.',
+              AppStrings.of(context).extractError(p.basename(archive.path)),
             ),
           ),
         );
       }
+    } finally {
+      overlay.remove();
+      overlay.dispose();
+      _installingArchive = false;
     }
   }
 
@@ -600,7 +651,7 @@ class _DetailViewState extends State<DetailView> {
     if (!await directory.exists()) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Không tìm thấy thư mục skin.')),
+          SnackBar(content: Text(AppStrings.of(context).missingFolder)),
         );
       }
       return;
@@ -620,9 +671,7 @@ class _DetailViewState extends State<DetailView> {
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Không thể mở thư mục trong trình quản lý file.'),
-          ),
+          SnackBar(content: Text(AppStrings.of(context).openFolderError)),
         );
       }
     }
@@ -639,7 +688,7 @@ class _DetailViewState extends State<DetailView> {
       menuPadding: EdgeInsets.zero,
       items: [
         if (isArchive)
-          const PopupMenuItem(
+          PopupMenuItem(
             value: 'use',
             child: ListTile(
               contentPadding: EdgeInsets.zero,
@@ -647,71 +696,90 @@ class _DetailViewState extends State<DetailView> {
                 Icons.check_circle_outline,
                 color: AppColors.success,
               ),
-              title: Text('Dùng trang phục này'),
+              title: Text(AppStrings.of(context).useOutfit),
             ),
           ),
-        const PopupMenuItem(
+        PopupMenuItem(
+          value: 'rename',
+          child: ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(
+              Icons.drive_file_rename_outline,
+              color: AppColors.primary,
+            ),
+            title: Text(AppStrings.of(context).rename),
+          ),
+        ),
+        PopupMenuItem(
           value: 'delete',
           child: ListTile(
             contentPadding: EdgeInsets.zero,
             leading: Icon(Icons.delete_outline, color: AppColors.danger),
-            title: Text('Xoá'),
+            title: Text(AppStrings.of(context).delete),
           ),
         ),
       ],
     );
+    if (!mounted) return;
+    if (action == 'rename') rename(e);
     if (action == 'delete') delete(e);
     if (action == 'use') useArchive(e as File);
   }
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          padding: const EdgeInsets.fromLTRB(28, 14, 22, 14),
-          decoration: const BoxDecoration(
-            color: AppColors.surface,
-            border: Border(bottom: BorderSide(color: AppColors.border)),
-          ),
-          child: Row(
-            children: [
-              IconButton(
-                onPressed: widget.onBack,
-                icon: const Icon(Icons.arrow_back),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    _displaySkinName(widget.skinName),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
+    return BlocListener<LibraryBloc, LibraryState>(
+      listenWhen: (previous, current) =>
+          previous.status == LibraryStatus.loading &&
+          current.status == LibraryStatus.ready,
+      listener: (context, state) => load(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.fromLTRB(28, 14, 22, 14),
+            decoration: const BoxDecoration(
+              color: AppColors.surface,
+              border: Border(bottom: BorderSide(color: AppColors.border)),
+            ),
+            child: Row(
+              children: [
+                IconButton(
+                  onPressed: widget.onBack,
+                  icon: const Icon(Icons.arrow_back),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      _displaySkinName(widget.skinName),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
                 ),
-              ),
-              IconButton(
-                tooltip: 'Mở trong thư mục',
-                onPressed: openFolder,
-                icon: const Icon(Icons.folder_open_outlined),
-              ),
-            ],
+                IconButton(
+                  tooltip: AppStrings.of(context).openFolder,
+                  onPressed: openFolder,
+                  icon: const Icon(Icons.folder_open_outlined),
+                ),
+              ],
+            ),
           ),
-        ),
-        Expanded(
-          child: loading
-              ? const Center(child: CircularProgressIndicator())
-              : entries.isEmpty
-              ? const Center(child: Text('Thư mục này đang trống.'))
-              : FileEntryGrid(entries: entries, onContextMenu: menu),
-        ),
-      ],
+          Expanded(
+            child: loading
+                ? const Center(child: CircularProgressIndicator())
+                : entries.isEmpty
+                ? Center(child: Text(AppStrings.of(context).emptyFolder))
+                : FileEntryGrid(entries: entries, onContextMenu: menu),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -752,17 +820,11 @@ class FileEntryGrid extends StatelessWidget {
           ? AppColors.archive.withValues(alpha: 0.12)
           : AppColors.primarySoft;
 
-      return GestureDetector(
-        behavior: HitTestBehavior.opaque,
+      return LibraryCard(
         onSecondaryTapDown: (details) =>
             onContextMenu(details.globalPosition, entry),
-        child: Container(
+        child: Padding(
           padding: const EdgeInsets.fromLTRB(12, 16, 12, 14),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AppColors.borderStrong),
-          ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -771,7 +833,7 @@ class FileEntryGrid extends StatelessWidget {
                 height: 72,
                 decoration: BoxDecoration(
                   color: iconBackground,
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(6),
                 ),
                 child: Icon(icon, size: 40, color: color),
               ),

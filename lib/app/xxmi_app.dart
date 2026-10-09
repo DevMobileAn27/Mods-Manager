@@ -1,8 +1,12 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../core/character_catalog.dart';
 import '../core/folder_access.dart';
+import '../core/localization/app_language.dart';
+import '../core/localization/app_locale_cubit.dart';
 import '../core/theme/app_theme.dart';
 import '../features/library/data/library_repository.dart';
 import '../features/library/presentation/library_page.dart';
@@ -11,11 +15,19 @@ import '../features/onboarding/presentation/get_started_page.dart';
 class XxmiApp extends StatelessWidget {
   const XxmiApp({super.key});
   @override
-  Widget build(BuildContext context) => MaterialApp(
-    title: 'Visual Mods Manager',
-    debugShowCheckedModeBanner: false,
-    theme: AppTheme.light,
-    home: const RootPage(),
+  Widget build(BuildContext context) => BlocProvider(
+    create: (_) => AppLocaleCubit()..load(),
+    child: BlocBuilder<AppLocaleCubit, AppLanguage>(
+      builder: (context, language) => MaterialApp(
+        title: 'Visual Mods Manager',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.dark,
+        locale: language.locale,
+        supportedLocales: AppLanguage.values.map((language) => language.locale),
+        localizationsDelegates: GlobalMaterialLocalizations.delegates,
+        home: const RootPage(),
+      ),
+    ),
   );
 }
 

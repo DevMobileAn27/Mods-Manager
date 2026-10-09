@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.3+4
+version: 1.1.0+5
 
 environment:
   sdk: ^3.11.0
@@ -29,6 +29,8 @@ environment:
 # versions available, run `flutter pub outdated`.
 dependencies:
   flutter:
+    sdk: flutter
+  flutter_localizations:
     sdk: flutter
 
   # The following adds the Cupertino Icons font to your application.
@@ -63,7 +65,36 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+  fonts:
+    - family: Chakra Petch
+      fonts:
+        - asset: assets/fonts/chakra_petch/ChakraPetch-Light.ttf
+          weight: 300
+        - asset: assets/fonts/chakra_petch/ChakraPetch-LightItalic.ttf
+          weight: 300
+          style: italic
+        - asset: assets/fonts/chakra_petch/ChakraPetch-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/chakra_petch/ChakraPetch-Italic.ttf
+          weight: 400
+          style: italic
+        - asset: assets/fonts/chakra_petch/ChakraPetch-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/chakra_petch/ChakraPetch-MediumItalic.ttf
+          weight: 500
+          style: italic
+        - asset: assets/fonts/chakra_petch/ChakraPetch-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/chakra_petch/ChakraPetch-SemiBoldItalic.ttf
+          weight: 600
+          style: italic
+        - asset: assets/fonts/chakra_petch/ChakraPetch-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/chakra_petch/ChakraPetch-BoldItalic.ttf
+          weight: 700
+          style: italic
   assets:
+    - assets/fonts/chakra_petch/OFL.txt
     - assets/characters/alice_thymefield/
     - assets/characters/anby_demara/
     - assets/characters/anton_ivanov/

@@ -1,4 +1,9 @@
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../core/localization/app_language.dart';
+import '../../../core/localization/app_locale_cubit.dart';
+import '../../../core/localization/app_strings.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/app_background.dart';
 import '../../../core/update/windows_update_service.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
@@ -31,11 +36,7 @@ class _SettingsPageState extends State<SettingsPage> {
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Không thể kiểm tra bản cập nhật. Hãy thử lại khi có Internet.',
-            ),
-          ),
+          SnackBar(content: Text(AppStrings.of(context).updateError)),
         );
       }
     } finally {
@@ -44,7 +45,9 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Future<void> _pickMods() async {
-    final path = await getDirectoryPath(confirmButtonText: 'Chọn thư mục Mods');
+    final path = await getDirectoryPath(
+      confirmButtonText: AppStrings.of(context).pickMods,
+    );
     if (mounted && !saving && path != null && path != modsPath) {
       await _applyPaths(path, downloadPath);
     }
@@ -52,7 +55,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Future<void> _pickDownload() async {
     final path = await getDirectoryPath(
-      confirmButtonText: 'Chọn thư mục Download',
+      confirmButtonText: AppStrings.of(context).pickDownload,
     );
     if (mounted && !saving && path != null && path != downloadPath) {
       await _applyPaths(modsPath, path);
@@ -72,7 +75,7 @@ class _SettingsPageState extends State<SettingsPage> {
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Không thể lưu đường dẫn thư mục.')),
+          SnackBar(content: Text(AppStrings.of(context).savePathsError)),
         );
       }
     } finally {
@@ -80,60 +83,98 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
+  Future<void> _changeLanguage(AppLanguage language) async {
+    try {
+      await context.read<AppLocaleCubit>().changeLanguage(language);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppStrings.of(context).saveLanguageError)),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: AppColors.background,
     appBar: AppBar(
-      title: const Text(
-        'Settings',
-        style: TextStyle(fontWeight: FontWeight.w800),
+      title: Text(
+        AppStrings.of(context).settings,
+        style: const TextStyle(fontWeight: FontWeight.w800),
       ),
       backgroundColor: AppColors.surface,
       surfaceTintColor: AppColors.transparent,
     ),
-    body: Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 760),
-        child: ListView(
-          padding: const EdgeInsets.all(32),
-          children: [
-            _FolderSetting(
-              title: 'Mods',
-              path: modsPath,
-              icon: Icons.extension_outlined,
-              onChange: saving ? null : _pickMods,
-            ),
-            const SizedBox(height: 12),
-            _FolderSetting(
-              title: 'Download',
-              path: downloadPath,
-              icon: Icons.archive_outlined,
-              onChange: saving ? null : _pickDownload,
-            ),
-            if (WindowsUpdateService.instance.isAvailable) ...[
-              const SizedBox(height: 32),
-              const Text(
-                'Cập nhật ứng dụng',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Ứng dụng tự kiểm tra bản mới trên GitHub Releases mỗi ngày.',
-                style: TextStyle(color: AppColors.textSecondary),
-              ),
-              const SizedBox(height: 16),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: OutlinedButton.icon(
-                  onPressed: checkingForUpdates ? null : _checkForUpdates,
-                  icon: const Icon(Icons.system_update_alt),
-                  label: Text(
-                    checkingForUpdates ? 'Đang kiểm tra…' : 'Kiểm tra cập nhật',
-                  ),
+    body: AppBackground(
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 760),
+          child: ListView(
+            padding: const EdgeInsets.all(32),
+            children: [
+              Text(
+                AppStrings.of(context).storageFolders,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textSecondary,
                 ),
               ),
+              const SizedBox(height: 18),
+              _FolderSetting(
+                title: 'Mods',
+                path: modsPath,
+                icon: Icons.extension_outlined,
+                onChange: saving ? null : _pickMods,
+              ),
+              const SizedBox(height: 12),
+              _FolderSetting(
+                title: 'Download',
+                path: downloadPath,
+                icon: Icons.archive_outlined,
+                onChange: saving ? null : _pickDownload,
+              ),
+              const SizedBox(height: 32),
+              Text(
+                AppStrings.of(context).languageTitle,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 16),
+              _LanguageSettings(onChanged: _changeLanguage),
+              if (WindowsUpdateService.instance.isAvailable) ...[
+                const SizedBox(height: 32),
+                Text(
+                  AppStrings.of(context).appUpdates,
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  AppStrings.of(context).updateDescription,
+                  style: const TextStyle(color: AppColors.textSecondary),
+                ),
+                const SizedBox(height: 16),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: OutlinedButton.icon(
+                    onPressed: checkingForUpdates ? null : _checkForUpdates,
+                    icon: const Icon(Icons.system_update_alt),
+                    label: Text(
+                      checkingForUpdates
+                          ? AppStrings.of(context).checkingUpdates
+                          : AppStrings.of(context).checkUpdates,
+                    ),
+                  ),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     ),
@@ -152,10 +193,10 @@ class _FolderSetting extends StatelessWidget {
   });
   @override
   Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(16),
+    padding: const EdgeInsets.all(22),
     decoration: BoxDecoration(
       color: AppColors.surface,
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(6),
       border: Border.all(color: AppColors.border),
     ),
     child: Row(
@@ -165,7 +206,7 @@ class _FolderSetting extends StatelessWidget {
           height: 42,
           decoration: BoxDecoration(
             color: AppColors.primarySoft,
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(6),
           ),
           child: Icon(icon, color: AppColors.primaryDark),
         ),
@@ -188,8 +229,69 @@ class _FolderSetting extends StatelessWidget {
             ],
           ),
         ),
-        OutlinedButton(onPressed: onChange, child: const Text('Change')),
+        OutlinedButton(
+          onPressed: onChange,
+          child: Text(AppStrings.of(context).change),
+        ),
       ],
     ),
   );
+}
+
+class _LanguageSettings extends StatelessWidget {
+  final ValueChanged<AppLanguage> onChanged;
+
+  const _LanguageSettings({required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) =>
+      BlocBuilder<AppLocaleCubit, AppLanguage>(
+        builder: (context, selected) => RadioGroup<AppLanguage>(
+          groupValue: selected,
+          onChanged: (language) {
+            if (language != null) onChanged(language);
+          },
+          child: Row(
+            children: [
+              for (final language in AppLanguage.values) ...[
+                if (language != AppLanguage.values.first)
+                  const SizedBox(width: 12),
+                Expanded(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: selected == language
+                          ? AppColors.primarySoft
+                          : AppColors.surface,
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                        color: selected == language
+                            ? AppColors.primary
+                            : AppColors.border,
+                      ),
+                    ),
+                    child: RadioListTile<AppLanguage>(
+                      value: language,
+                      title: Text(
+                        language.label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      activeColor: AppColors.primary,
+                      dense: true,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      );
 }

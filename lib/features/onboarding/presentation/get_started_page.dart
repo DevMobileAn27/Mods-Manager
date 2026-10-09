@@ -1,4 +1,6 @@
 import '../../../core/theme/app_theme.dart';
+import '../../../core/localization/app_strings.dart';
+import '../../../core/widgets/app_background.dart';
 import 'dart:io';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
@@ -16,38 +18,39 @@ class _SetupPageState extends State<SetupPage> {
   String? mods, download;
   bool busy = false;
   Future<void> pickMods() async {
-    final x = await getDirectoryPath(confirmButtonText: 'Chọn thư mục Mods');
+    final x = await getDirectoryPath(
+      confirmButtonText: AppStrings.of(context).pickMods,
+    );
     if (x != null) setState(() => mods = x);
   }
 
   Future<void> pickDownload() async {
+    final strings = AppStrings.of(context);
     final choice = await showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
-        title: const Text('Thư mục Download'),
-        content: const Text('Bạn đã có sẵn thư mục Download hay muốn tạo mới?'),
+        title: Text(strings.downloadFolder),
+        content: Text(strings.downloadChoice),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(c, false),
-            child: const Text('Tạo mới'),
+            child: Text(strings.createNew),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(c, true),
-            child: const Text('Đã có sẵn'),
+            child: Text(strings.alreadyExists),
           ),
         ],
       ),
     );
     if (choice == null) return;
     if (choice) {
-      final x = await getDirectoryPath(
-        confirmButtonText: 'Chọn thư mục Download',
-      );
+      final x = await getDirectoryPath(confirmButtonText: strings.pickDownload);
       if (x != null) setState(() => download = x);
       return;
     }
     final parent = await getDirectoryPath(
-      confirmButtonText: 'Chọn nơi tạo thư mục',
+      confirmButtonText: strings.pickParent,
     );
     if (parent == null) return;
     if (!mounted) return;
@@ -55,20 +58,20 @@ class _SetupPageState extends State<SetupPage> {
     final name = await showDialog<String>(
       context: context,
       builder: (c) => AlertDialog(
-        title: const Text('Tạo thư mục Download'),
+        title: Text(strings.createDownload),
         content: TextField(
           controller: controller,
           autofocus: true,
-          decoration: const InputDecoration(labelText: 'Tên thư mục'),
+          decoration: InputDecoration(labelText: strings.folderName),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(c),
-            child: const Text('Huỷ'),
+            child: Text(strings.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(c, controller.text.trim()),
-            child: const Text('Tạo'),
+            child: Text(strings.create),
           ),
         ],
       ),
@@ -89,70 +92,82 @@ class _SetupPageState extends State<SetupPage> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    body: Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 900),
-        child: Padding(
-          padding: const EdgeInsets.all(40),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Visual Mods Manager',
-                style: TextStyle(fontSize: 34, fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Quản lý mods Zenless Zone Zero theo từng nhân vật.',
-                style: TextStyle(color: AppColors.textSubtle, fontSize: 16),
-              ),
-              const SizedBox(height: 36),
-              Row(
-                children: [
-                  Expanded(
-                    child: SetupCard(
-                      title: 'Thư mục Mods',
-                      subtitle:
-                          mods ?? 'Chọn thư mục chứa các mod đang sử dụng',
-                      icon: Icons.folder_special_outlined,
-                      onTap: pickMods,
-                      selected: mods != null,
-                    ),
-                  ),
-                  const SizedBox(width: 20),
-                  Expanded(
-                    child: SetupCard(
-                      title: 'Thư mục Download',
-                      subtitle: download ?? 'Chọn hoặc tạo nơi lưu file ZIP',
-                      icon: Icons.archive_outlined,
-                      onTap: pickDownload,
-                      selected: download != null,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 30),
-              Align(
-                alignment: Alignment.centerRight,
-                child: FilledButton.icon(
-                  onPressed: (mods != null && download != null && !busy)
-                      ? finish
-                      : null,
-                  icon: busy
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: AppColors.surface,
-                          ),
-                        )
-                      : const Icon(Icons.arrow_forward),
-                  label: const Text('Bắt đầu quản lý'),
+    body: AppBackground(
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 900),
+          child: Padding(
+            padding: const EdgeInsets.all(40),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(
+                  Icons.widgets_outlined,
+                  color: AppColors.primary,
+                  size: 42,
                 ),
-              ),
-            ],
+                const SizedBox(height: 20),
+                const Text(
+                  'Visual Mods Manager',
+                  style: TextStyle(fontSize: 34, fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  AppStrings.of(context).appDescription,
+                  style: const TextStyle(
+                    color: AppColors.textSubtle,
+                    fontSize: 16,
+                  ),
+                ),
+                const SizedBox(height: 36),
+                Row(
+                  children: [
+                    Expanded(
+                      child: SetupCard(
+                        title: AppStrings.of(context).modsFolder,
+                        subtitle: mods ?? AppStrings.of(context).modsFolderHint,
+                        icon: Icons.folder_special_outlined,
+                        onTap: pickMods,
+                        selected: mods != null,
+                      ),
+                    ),
+                    const SizedBox(width: 20),
+                    Expanded(
+                      child: SetupCard(
+                        title: AppStrings.of(context).downloadFolder,
+                        subtitle:
+                            download ??
+                            AppStrings.of(context).downloadFolderHint,
+                        icon: Icons.archive_outlined,
+                        onTap: pickDownload,
+                        selected: download != null,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 30),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: FilledButton.icon(
+                    onPressed: (mods != null && download != null && !busy)
+                        ? finish
+                        : null,
+                    icon: busy
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: AppColors.onPrimary,
+                            ),
+                          )
+                        : const Icon(Icons.arrow_forward),
+                    label: Text(AppStrings.of(context).getStarted),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -176,13 +191,13 @@ class SetupCard extends StatelessWidget {
   @override
   Widget build(BuildContext c) => InkWell(
     onTap: onTap,
-    borderRadius: BorderRadius.circular(14),
+    borderRadius: BorderRadius.circular(6),
     child: Container(
       height: 170,
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(6),
         border: Border.all(
           color: selected ? AppColors.primary : AppColors.border,
           width: selected ? 2 : 1,

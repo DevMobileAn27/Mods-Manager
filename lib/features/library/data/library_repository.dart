@@ -5,6 +5,13 @@ import 'package:path/path.dart' as p;
 
 typedef RarExtractor = Future<void> Function(File archive, Directory output);
 
+enum RenameEntryFailure { invalidName, alreadyExists }
+
+class RenameEntryException implements Exception {
+  final RenameEntryFailure reason;
+  const RenameEntryException(this.reason);
+}
+
 class ModFolderStatus {
   final int folderCount;
   final bool hasContent;
@@ -23,6 +30,37 @@ class LibraryRepository {
     this.skinCatalog = const {},
     this.rarExtractor,
   });
+
+  static bool isValidEntryName(String name) {
+    if (name.isEmpty ||
+        name != name.trim() ||
+        name.length > 255 ||
+        name.endsWith('.') ||
+        RegExp(r'[<>:"/\\|?*\x00-\x1F]').hasMatch(name)) {
+      return false;
+    }
+    final stem = name.split('.').first.toUpperCase();
+    return !RegExp(r'^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])$').hasMatch(stem);
+  }
+
+  Future<FileSystemEntity> renameEntry(
+    FileSystemEntity entry,
+    String newName,
+  ) async {
+    if (!isValidEntryName(newName)) {
+      throw const RenameEntryException(RenameEntryFailure.invalidName);
+    }
+    final target = p.join(p.dirname(entry.path), newName);
+    if (p.equals(entry.path, target)) return entry;
+    // Check case-insensitively to keep names compatible with Windows.
+    await for (final sibling in entry.parent.list(followLinks: false)) {
+      if (!p.equals(sibling.path, entry.path) &&
+          p.basename(sibling.path).toLowerCase() == newName.toLowerCase()) {
+        throw const RenameEntryException(RenameEntryFailure.alreadyExists);
+      }
+    }
+    return entry.rename(target);
+  }
 
   Future<void> ensureCharacterFolders(
     String modsPath,

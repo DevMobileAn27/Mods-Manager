@@ -2,6 +2,8 @@
 
 Visual Mods Manager giúp bạn sắp xếp và cài đặt mod trang phục cho **Zenless Zone Zero** trên Windows.
 
+![Thư viện Mods](docs/images/library.png)
+
 ## Cài đặt
 
 1. Mở trang [Releases](https://github.com/DevMobileAn27/visual-mods-manager/releases).
@@ -24,47 +26,79 @@ Nên đặt hai thư mục này bên ngoài thư mục cài đặt ứng dụng 
 
 - Chọn tab **Mods** để xem các mod đã cài.
 - Chọn tab **Download** để xem các file ZIP hoặc RAR đã tải.
-- Bấm vào ô nhân vật hoặc trang phục để xem nội dung bên trong.
+- Bấm card ở **Mods** để mở chi tiết mod; bấm card ở **Download** để mở chi tiết download.
 - Dùng biểu tượng kính lúp để tìm kiếm.
-- Bấm biểu tượng làm mới sau khi thêm hoặc xóa file bằng File Explorer.
+- Bấm biểu tượng làm mới sau khi thêm hoặc xoá file bằng File Explorer, kể cả khi đang ở màn hình chi tiết.
 - Bấm biểu tượng thư mục trong màn hình chi tiết để mở vị trí tương ứng trên máy.
 
-Badge trên tab **Download** cho biết tổng số file ZIP và RAR trong mỗi trang phục. Trên tab **Mods**, dấu xanh cho biết có đúng một thư mục mod chứa dữ liệu; dấu đỏ cho biết thư mục mod rỗng hoặc có nhiều thư mục mod.
+Số trên card **Download** cho biết số file ZIP/RAR. Hover vào dấu trạng thái trên card **Mods** để xem thông tin.
 
-![Thư viện nhân vật](docs/images/library.png)
+![Thư viện Download với badge số file](docs/images/download-library.png)
+
+### Tìm kiếm
+
+Hover hoặc bấm kính lúp, rồi nhập tên nhân vật hoặc trang phục. Bấm **X** để xoá từ khoá.
+
+![Tìm kiếm nhân vật và trang phục](docs/images/search.png)
 
 ## Cài đặt trang phục
 
-1. Tải file ZIP hoặc RAR trang phục và đặt vào thư mục trang phục tương ứng trong tab **Download**.
-2. Mở ô trang phục đó.
-3. Bấm chuột phải vào file ZIP hoặc RAR.
-4. Chọn **Dùng trang phục này**.
-5. Chuyển sang tab **Mods** để xem mod đã cài.
+1. Trong tab **Download**, mở card trang phục muốn cài.
+2. Bấm biểu tượng thư mục để mở vị trí lưu file, rồi đặt file ZIP/RAR đã tải vào đó.
+3. Quay lại app, bấm **Làm mới**.
+4. Bấm chuột phải vào file ZIP/RAR, chọn **Dùng trang phục này**.
+5. Chờ giải nén hoàn tất, rồi chuyển sang tab **Mods** để xem mod đã cài.
+
+![Màn hình chi tiết Download](docs/images/download-detail.png)
+
+## Menu chuột phải
+
+Bấm chuột phải vào file hoặc thư mục **bên trong màn hình chi tiết** để mở menu.
+
+| Lựa chọn | Chức năng |
+| --- | --- |
+| **Dùng trang phục này** | Giải nén và cài mod; chỉ xuất hiện với ZIP/RAR trong Download. |
+| **Đổi tên** | Đổi tên file hoặc thư mục. |
+| **Xoá** | Xoá file hoặc thư mục sau khi xác nhận. |
 
 ![Menu cài đặt trang phục](docs/images/right-click-menu.png)
 
-Bạn cần tự tải file ZIP hoặc RAR trước; ứng dụng không tự tải mod từ Internet.
+### Đổi tên
+
+1. Chọn **Đổi tên** trong menu chuột phải.
+2. Nhập tên mới rồi bấm **Đổi tên** hoặc nhấn **Enter**.
+
+Chỉ nhập tên mới; đuôi file được giữ nguyên.
+
+![Hộp thoại Đổi tên giữ nguyên đuôi ZIP](docs/images/rename.png)
 
 ## Xóa mod hoặc file ZIP/RAR
 
 1. Mở thư mục hoặc trang phục cần chỉnh sửa.
 2. Bấm chuột phải vào file hoặc thư mục.
-3. Chọn **Xóa** rồi xác nhận.
+3. Chọn **Xoá** rồi xác nhận.
 
 > Lệnh xóa tác động trực tiếp lên ổ đĩa và không chuyển file vào Thùng rác.
 
-## Đổi thư mục
+## Thiết lập
 
-1. Bấm biểu tượng **Settings**.
-2. Chọn **Change** tại mục **Mods** hoặc **Download**.
+1. Bấm biểu tượng bánh răng ở bên phải thanh tab để mở **Thiết lập**.
+2. Chọn **Thay đổi** tại mục **Mods** hoặc **Download**.
 3. Chọn thư mục mới.
 
 Thay đổi có hiệu lực ngay sau khi chọn.
 
-## Cập nhật ứng dụng
+Ở mục **Ngôn ngữ**, chọn **Tiếng Việt**, **English** hoặc **汉语**.
 
-- Ứng dụng tự kiểm tra bản mới khi khởi động.
-- Bạn có thể kiểm tra thủ công tại **Settings → Kiểm tra cập nhật**.
-- Khi có bản mới, làm theo hướng dẫn tải và cài đặt.
+![Màn hình Thiết lập](docs/images/settings.png)
 
-Nếu danh sách chưa thay đổi sau khi chỉnh sửa thư mục, hãy bấm biểu tượng **Làm mới**.
+## Cập nhật ứng dụng trên Windows
+
+1. Mở **Thiết lập → Cập nhật ứng dụng → Kiểm tra cập nhật**.
+2. Khi có bản mới, làm theo hướng dẫn tải và cài đặt.
+
+## Giấy phép
+
+Copyright (c) 2026 Nguyễn Quốc An.
+
+Visual Mods Manager được phát hành theo [GNU General Public License v3.0 (GPL-3.0)](LICENSE).
