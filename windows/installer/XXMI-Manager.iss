@@ -23,6 +23,7 @@ ArchitecturesInstallIn64BitMode=x64compatible
 CloseApplications=yes
 RestartApplications=no
 UninstallDisplayIcon={app}\xxmi_manager.exe
+SetupIconFile=..\runner\resources\app_icon.ico
 WizardStyle=modern
 
 [Files]

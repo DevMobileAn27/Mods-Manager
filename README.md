@@ -99,6 +99,4 @@ Thay đổi có hiệu lực ngay sau khi chọn.
 
 ## Giấy phép
 
-Copyright (c) 2026 Nguyễn Quốc An.
-
 Visual Mods Manager được phát hành theo [GNU General Public License v3.0 (GPL-3.0)](LICENSE).
